@@ -1,0 +1,1613 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PropCare — Landlord Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+    <script src="https://cdn.socket.io/4.6.1/socket.io.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root {
+            --g1: #0d3d2b; --g2: #155c40; --g3: #1e7a54;
+            --g4: #27a06e; --g5: #4dbb89; --g6: #a8dfc5;
+            --g7: #d4f0e4; --g8: #edfaf3;
+            --text: #0d1f18; --muted: #5a7a6b; --border: #c8e8d9;
+            --danger: #e74c3c;
+            --danger-bg: #fdecea;
+            --success: #27ae60;
+            --success-bg: #e8f5e9;
+        }
+        body { font-family: 'DM Sans', sans-serif; background: #f0f7f3; }
+        
+        .sidebar {
+            width: 260px; height: 100vh; position: fixed; top: 0; left: 0;
+            background: var(--g1); padding: 28px 20px; display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+        }
+        .sidebar-logo { display: flex; align-items: center; gap: 10px; margin-bottom: 36px; }
+        .sidebar-logo-icon {
+            width: 34px; height: 34px; background: var(--g4);
+            border-radius: 9px; display: flex; align-items: center; justify-content: center;
+        }
+        .sidebar-logo span { font-family: 'Cormorant Garamond', serif; font-size: 1.35rem; font-weight: 700; color: white; }
+        .nav-item {
+            display: flex; align-items: center; gap: 10px; padding: 12px;
+            border-radius: 8px; color: var(--g6); cursor: pointer; margin-bottom: 4px;
+        }
+        .nav-item:hover, .nav-item.active { background: rgba(255,255,255,.12); color: white; }
+        .sidebar-user {
+            display: flex; align-items: center; gap: 10px; padding: 14px 0;
+            border-top: 1px solid rgba(255,255,255,.1);
+            border-bottom: 1px solid rgba(255,255,255,.1); margin: auto 0 14px 0;
+        }
+        .user-avatar {
+            width: 36px; height: 36px; border-radius: 50%; background: var(--g3);
+            display: flex; align-items: center; justify-content: center; color: white;
+        }
+        .sidebar-name { font-size: .88rem; font-weight: 500; color: white; }
+        .sidebar-email { font-size: .75rem; color: var(--g6); }
+        .logout {
+            display: flex; align-items: center; justify-content: center; gap: 8px;
+            padding: 10px; background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.18);
+            border-radius: 8px; color: var(--g6); cursor: pointer;
+        }
+        .logout:hover { background: rgba(255,255,255,.16); color: white; }
+        
+        .main { margin-left: 260px; padding: 32px 40px; }
+        .dash-header {
+            display: flex; justify-content: space-between;
+            align-items: center;
+            margin-bottom: 28px;
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+        .dash-header h1 { font-family: 'Cormorant Garamond', serif; font-size: 2rem; color: var(--g1); }
+        .btn-primary {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 24px;
+            background: var(--g3);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-weight: 500;
+            cursor: pointer;
+        }
+        .btn-primary:hover { background: var(--g2); }
+        .btn-secondary { background: var(--g4); }
+        .btn-danger { background: #fdecea; color: #c0392b; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 0.7rem; }
+        .btn-danger:hover { background: #fce4e4; }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+            margin-bottom: 32px;
+        }
+        .stat-card {
+            background: white;
+            border-radius: 12px;
+            padding: 18px 20px;
+            border: 1.5px solid var(--border);
+        }
+        .stat-label { font-size: .7rem; font-weight: 500; color: var(--muted); text-transform: uppercase; }
+        .stat-value { font-family: 'Cormorant Garamond', serif; font-size: 2rem; font-weight: 700; color: var(--g1); }
+        .stat-card.emergency .stat-value { color: #e74c3c; }
+        .stat-card.urgent .stat-value { color: #e67e22; }
+        
+        .filters {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        .filters select, .filters input {
+            padding: 8px 12px;
+            border: 1.5px solid var(--border);
+            border-radius: 8px;
+            font-family: inherit;
+        }
+        
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        .action-btn-small {
+            padding: 8px 16px;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            font-size: 0.8rem;
+        }
+        
+        .issue-card {
+            background: white;
+            border-radius: 12px;
+            padding: 18px 20px;
+            margin-bottom: 12px;
+            border: 1.5px solid var(--border);
+            transition: transform 0.2s;
+        }
+        .issue-card.emergency-priority {
+            border-left: 5px solid #e74c3c;
+            background: #fff5f5;
+        }
+        .issue-card:hover { transform: translateX(4px); }
+        .issue-header { display: flex; justify-content: space-between; align-items: start; margin-bottom: 10px; flex-wrap: wrap; gap: 8px; }
+        .issue-title { font-size: 1rem; font-weight: 600; color: var(--text); }
+        .risk-badge {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: .7rem;
+            font-weight: 500;
+        }
+        .risk-Emergency { background: #fdecea; color: #b71c1c; }
+        .risk-Urgent { background: #fff3e0; color: #e65100; }
+        .risk-Less\ Urgent { background: var(--g8); color: var(--g2); }
+        .status-badge {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: .7rem;
+            font-weight: 500;
+        }
+        .status-Open { background: var(--g8); color: var(--g3); }
+        .status-In\ Progress { background: #e3f2fd; color: #1565c0; }
+        .status-Resolved { background: #e8f5e9; color: #2e7d32; }
+        
+        .issue-actions {
+            margin-top: 12px;
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        .action-btn {
+            padding: 6px 12px;
+            border-radius: 6px;
+            border: none;
+            font-size: 0.75rem;
+            cursor: pointer;
+        }
+        .btn-assign { background: var(--g3); color: white; }
+        .btn-progress { background: #e3f2fd; color: #1565c0; }
+        .btn-resolve { background: #e8f5e9; color: #2e7d32; }
+        .btn-warning { background: #fff3e0; color: #e65100; }
+        .btn-approve { background: var(--success-bg); color: var(--success); }
+        .btn-reject { background: var(--danger-bg); color: var(--danger); }
+        
+        .data-table {
+            background: white;
+            border-radius: 12px;
+            border: 1.5px solid var(--border);
+            overflow-x: auto;
+            margin-top: 16px;
+        }
+        .table-header {
+            display: grid;
+            background: var(--g8);
+            padding: 12px 16px;
+            border-bottom: 1.5px solid var(--border);
+            font-weight: 500;
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            color: var(--muted);
+        }
+        .table-row {
+            display: grid;
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--border);
+            align-items: center;
+        }
+        .table-row:last-child { border-bottom: none; }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.5);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        .modal-content {
+            background: white;
+            border-radius: 16px;
+            padding: 28px;
+            width: 90%;
+            max-width: 550px;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .modal-header h2 { font-family: 'Cormorant Garamond', serif; color: var(--g1); }
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+        }
+        .form-group { margin-bottom: 16px; }
+        .form-group label {
+            display: block;
+            font-size: 0.75rem;
+            font-weight: 500;
+            color: var(--g2);
+            margin-bottom: 6px;
+        }
+        .form-group input, .form-group select, .form-group textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1.5px solid var(--border);
+            border-radius: 8px;
+            font-family: inherit;
+        }
+        .form-group select[multiple] {
+            height: auto;
+            min-height: 100px;
+        }
+        .btn-submit {
+            width: 100%;
+            padding: 12px;
+            background: var(--g1);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: 500;
+            cursor: pointer;
+        }
+        .btn-cancel {
+            width: 100%;
+            padding: 10px;
+            background: var(--g8);
+            color: var(--g2);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            cursor: pointer;
+            margin-top: 8px;
+        }
+        .help-text {
+            font-size: .7rem;
+            color: var(--muted);
+            margin-top: 4px;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 60px;
+            background: white;
+            border-radius: 12px;
+            border: 1.5px dashed var(--border);
+        }
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: var(--g1);
+            color: white;
+            padding: 12px 20px;
+            border-radius: 8px;
+            animation: slideIn 0.3s ease;
+            z-index: 2000;
+        }
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        
+        .section-title {
+            font-size: 0.8rem;
+            font-weight: 500;
+            color: var(--muted);
+            text-transform: uppercase;
+            margin: 24px 0 12px;
+        }
+        
+        .tenant-info {
+            font-size: 0.75rem;
+            color: var(--g2);
+            margin-top: 4px;
+        }
+        
+        .pending-badge {
+            background: #ff9800;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.7rem;
+            margin-left: 8px;
+        }
+        
+        /* Reports Styles */
+        .reports-container {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        .report-card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            border: 1.5px solid var(--border);
+        }
+        .report-card h3 {
+            font-size: 1rem;
+            margin-bottom: 16px;
+            color: var(--g1);
+        }
+        .report-stats {
+            display: flex;
+            justify-content: space-around;
+            margin-bottom: 20px;
+        }
+        .report-stat {
+            text-align: center;
+        }
+        .report-stat-value {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: var(--g3);
+        }
+        .report-stat-label {
+            font-size: 0.7rem;
+            color: var(--muted);
+        }
+        .chart-container {
+            margin-top: 16px;
+        }
+        .bar-chart {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .bar-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .bar-label {
+            width: 100px;
+            font-size: 0.75rem;
+        }
+        .bar-fill {
+            height: 30px;
+            background: linear-gradient(90deg, var(--g3), var(--g4));
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            padding-right: 10px;
+            color: white;
+            font-size: 0.7rem;
+            font-weight: 500;
+        }
+        
+        @media (max-width: 900px) {
+            .sidebar { display: none; }
+            .main { margin-left: 0; padding: 20px; }
+            .stats-grid { grid-template-columns: repeat(2, 1fr); }
+            .reports-container { grid-template-columns: 1fr; }
+            .modal-content { width: 95%; margin: 10px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="sidebar">
+        <div class="sidebar-logo">
+            <div class="sidebar-logo-icon">
+                <svg viewBox="0 0 20 20" fill="white" width="18" height="18"><path d="M10 2C6 2 3 5 3 9c0 5 7 9 7 9s7-4 7-9c0-4-3-7-7-7z"/></svg>
+            </div>
+            <span>PropCare</span>
+        </div>
+        <nav>
+            <div class="nav-item active" onclick="showTab('issues')">📋 Issues</div>
+            <div class="nav-item" onclick="showTab('tenants')">👥 Tenants</div>
+            <div class="nav-item" onclick="showTab('technicians')">🔧 Technicians</div>
+            <div class="nav-item" onclick="showTab('maintenance')">🔨 Maintenance</div>
+            <div class="nav-item" onclick="showTab('broadcast')">📢 Broadcast</div>
+            <div class="nav-item" onclick="showTab('registrations')">📝 Pending Registrations <span id="pendingCount" class="pending-badge" style="display:none;">0</span></div>
+            <div class="nav-item" onclick="showTab('reports')">📊 Reports & Analytics</div>
+        </nav>
+        <div class="sidebar-user">
+            <div class="user-avatar" id="userAvatar">L</div>
+            <div>
+                <p id="userName" class="sidebar-name"></p>
+                <p id="userEmail" class="sidebar-email"></p>
+                <p id="propertyCount" style="font-size: 0.7rem; color: var(--g5); margin-top: 4px;"></p>
+            </div>
+        </div>
+        <button class="logout" onclick="logout()">Sign Out</button>
+    </div>
+    
+    <div class="main">
+        <div class="dash-header">
+            <div>
+                <h1 id="greeting"></h1>
+                <p id="propertySummary" style="color: var(--muted);"></p>
+            </div>
+            <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                <button class="btn-primary btn-secondary" onclick="openMaintenanceModal()">🔧 Schedule Maintenance</button>
+                <button class="btn-primary" onclick="openBroadcastModal()">📢 Send Broadcast</button>
+            </div>
+        </div>
+        
+        <!-- Issues Tab -->
+        <div id="issuesTab">
+            <div class="stats-grid">
+                <div class="stat-card"><div class="stat-label">Total Issues</div><div class="stat-value" id="statTotal">0</div></div>
+                <div class="stat-card"><div class="stat-label">Open Issues</div><div class="stat-value" id="statOpen">0</div></div>
+                <div class="stat-card urgent"><div class="stat-label">Urgent</div><div class="stat-value" id="statUrgent">0</div></div>
+                <div class="stat-card emergency"><div class="stat-label">Emergency</div><div class="stat-value" id="statEmergency">0</div></div>
+            </div>
+            
+            <div class="filters">
+                <select id="filterStatus" onchange="loadIssues()">
+                    <option value="">All Status</option>
+                    <option value="Open">Open</option>
+                    <option value="In Progress">In Progress</option>
+                    <option value="Resolved">Resolved</option>
+                </select>
+                <select id="filterRisk" onchange="loadIssues()">
+                    <option value="">All Priorities</option>
+                    <option value="Emergency">Emergency</option>
+                    <option value="Urgent">Urgent</option>
+                    <option value="Less Urgent">Less Urgent</option>
+                </select>
+            </div>
+            
+            <div id="issuesContainer"></div>
+        </div>
+        
+        <!-- Tenants Tab -->
+        <div id="tenantsTab" style="display: none;">
+            <!-- Active Tenants -->
+            <div class="section-title">👥 Active Tenants</div>
+            <div class="data-table">
+                <div class="table-header" style="grid-template-columns: 1.5fr 1.5fr 1.5fr 1fr 1fr;">
+                    <span>Name</span><span>Email</span><span>Apartment</span><span>Unit</span><span>Actions</span>
+                </div>
+                <div id="tenantsList"></div>
+            </div>
+            
+            <!-- Removed Tenants -->
+            <div style="margin-top: 32px;">
+                <div class="section-title" style="display: flex; justify-content: space-between; align-items: center;">
+                    <span>🗑️ Removed Tenants</span>
+                    <button class="btn-primary btn-secondary" style="padding: 6px 16px; font-size: 0.75rem;" onclick="loadRemovedTenants()">🔄 Refresh</button>
+                </div>
+                <div class="data-table" style="border-color: #fdecea;">
+                    <div class="table-header" style="grid-template-columns: 1.5fr 1.5fr 1.5fr 1fr 2fr; background: #fdecea;">
+                        <span>Name</span><span>Email</span><span>Apartment</span><span>Unit</span><span>Actions</span>
+                    </div>
+                    <div id="removedTenantsList"></div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Technicians Tab (with Remove Button) -->
+        <div id="techniciansTab" style="display: none;">
+            <div class="action-buttons">
+                <button class="btn-primary" onclick="openTechnicianModal()">+ Register Technician</button>
+            </div>
+            <div class="data-table">
+                <div class="table-header" style="grid-template-columns: 1.5fr 2fr 1fr 1.5fr 1fr;">
+                    <span>Name</span><span>Email</span><span>Phone</span><span>Skills & Status</span><span>Actions</span>
+                </div>
+                <div id="techniciansList"></div>
+            </div>
+        </div>
+        
+        <!-- Maintenance Tab -->
+        <div id="maintenanceTab" style="display: none;">
+            <div class="action-buttons">
+                <button class="btn-primary" onclick="openMaintenanceModal()">+ New Maintenance</button>
+                <button class="btn-primary btn-secondary" onclick="viewSchedules()">📅 View All Schedules</button>
+            </div>
+            <div id="upcomingMaintenance"></div>
+        </div>
+        
+        <!-- Broadcast Tab (shows sent broadcasts - NO DUPLICATES) -->
+        <div id="broadcastTab" style="display: none;">
+            <div class="section-title">Sent Broadcasts</div>
+            <div id="broadcastsContainer"></div>
+        </div>
+        
+        <!-- Pending Registrations Tab -->
+        <div id="registrationsTab" style="display: none;">
+            <div class="section-title">📋 Pending Tenant Registration Requests</div>
+            <div id="registrationsContainer"></div>
+        </div>
+        
+        <!-- Reports & Analytics Tab -->
+        <div id="reportsTab" style="display: none;">
+            <div class="stats-grid">
+                <div class="stat-card"><div class="stat-label">Total Apartments</div><div class="stat-value" id="reportTotalApts">0</div></div>
+                <div class="stat-card"><div class="stat-label">Occupied Units</div><div class="stat-value" id="reportOccupiedUnits">0</div></div>
+                <div class="stat-card"><div class="stat-label">Occupancy Rate</div><div class="stat-value" id="reportOccupancyRate">0%</div></div>
+                <div class="stat-card"><div class="stat-label">Total Tenants</div><div class="stat-value" id="reportTotalTenants">0</div></div>
+            </div>
+            
+            <div class="reports-container">
+                <div class="report-card">
+                    <h3>📊 Issues Overview</h3>
+                    <div class="report-stats">
+                        <div class="report-stat">
+                            <div class="report-stat-value" id="reportTotalIssues">0</div>
+                            <div class="report-stat-label">Total Issues</div>
+                        </div>
+                        <div class="report-stat">
+                            <div class="report-stat-value" id="reportOpenIssues">0</div>
+                            <div class="report-stat-label">Open</div>
+                        </div>
+                        <div class="report-stat">
+                            <div class="report-stat-value" id="reportResolvedIssues">0</div>
+                            <div class="report-stat-label">Resolved</div>
+                        </div>
+                        <div class="report-stat">
+                            <div class="report-stat-value" id="reportResolutionTime">0</div>
+                            <div class="report-stat-label">Avg Resolution (h)</div>
+                        </div>
+                    </div>
+                    <div class="chart-container" id="issuesChartContainer"></div>
+                </div>
+                
+                <div class="report-card">
+                    <h3>🏢 Estates Performance</h3>
+                    <div id="estatesPerformanceList"></div>
+                </div>
+            </div>
+            
+            <div class="report-card">
+                <h3>📈 Issues by Priority</h3>
+                <div class="bar-chart" id="priorityChart"></div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Assign Technician Modal -->
+    <div id="assignModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header"><h2>Assign Technician</h2><button class="modal-close" onclick="closeAssignModal()">&times;</button></div>
+            <div class="form-group"><label>Select Technician</label><select id="technicianSelect"><option>Loading...</option></select></div>
+            <button class="btn-submit" onclick="assignTechnician()">Assign</button>
+            <button class="btn-cancel" onclick="closeAssignModal()">Cancel</button>
+        </div>
+    </div>
+    
+    <!-- Change Technician Modal -->
+    <div id="changeTechnicianModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header"><h2>Change Technician</h2><button class="modal-close" onclick="closeChangeTechnicianModal()">&times;</button></div>
+            <div id="changeTechIssueInfo" style="margin-bottom: 16px; padding: 8px; background: var(--g8); border-radius: 8px;"></div>
+            <div class="form-group"><label>Select New Technician</label><select id="changeTechnicianSelect"><option>Loading...</option></select></div>
+            <button class="btn-submit" onclick="changeTechnician()">Change Technician</button>
+            <button class="btn-cancel" onclick="closeChangeTechnicianModal()">Cancel</button>
+        </div>
+    </div>
+    
+    <!-- Broadcast Modal -->
+    <div id="broadcastModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header"><h2>Send Broadcast</h2><button class="modal-close" onclick="closeBroadcastModal()">&times;</button></div>
+            <div class="form-group"><label>Title</label><input type="text" id="broadcastTitle" placeholder="Notice Title"></div>
+            <div class="form-group"><label>Message</label><textarea id="broadcastMessage" rows="4" placeholder="Your message..."></textarea></div>
+            <div class="form-group">
+                <label>Send To</label>
+                <select id="broadcastTarget" onchange="toggleTenantSelect()">
+                    <option value="all">All Tenants</option>
+                    <option value="specific">Specific Tenant</option>
+                </select>
+            </div>
+            <div id="specificTenantGroup" style="display: none;">
+                <div class="form-group">
+                    <label>Select Tenant</label>
+                    <select id="specificTenant"></select>
+                </div>
+            </div>
+            <button class="btn-submit" onclick="sendBroadcast()">Send</button>
+            <button class="btn-cancel" onclick="closeBroadcastModal()">Cancel</button>
+        </div>
+    </div>
+    
+    <!-- Technician Modal -->
+    <div id="technicianModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header"><h2>Register Technician</h2><button class="modal-close" onclick="closeTechnicianModal()">&times;</button></div>
+            <div class="form-group"><label>Full Name *</label><input type="text" id="techName" placeholder="John Technician"></div>
+            <div class="form-group"><label>Email *</label><input type="email" id="techEmail" placeholder="tech@example.com"></div>
+            <div class="form-group"><label>Phone</label><input type="text" id="techPhone" placeholder="+1234567890"></div>
+            <div class="form-group"><label>Password *</label><input type="password" id="techPassword" placeholder="Min 6 characters"></div>
+            <div class="form-group"><label>Skills (comma separated)</label><input type="text" id="techSkills" placeholder="Plumbing, Electrical, HVAC"></div>
+            <button class="btn-submit" onclick="addTechnician()">Register Technician</button>
+            <button class="btn-cancel" onclick="closeTechnicianModal()">Cancel</button>
+        </div>
+    </div>
+    
+    <!-- Maintenance Schedule Modal -->
+    <div id="maintenanceModal" class="modal">
+        <div class="modal-content" style="max-width: 600px;">
+            <div class="modal-header">
+                <h2>Schedule Maintenance</h2>
+                <button class="modal-close" onclick="closeMaintenanceModal()">&times;</button>
+            </div>
+            <div class="form-group">
+                <label>Title *</label>
+                <input type="text" id="maintenanceTitle" placeholder="e.g., Water Pipe Replacement">
+            </div>
+            <div class="form-group">
+                <label>Description</label>
+                <textarea id="maintenanceDesc" rows="3" placeholder="Describe the maintenance work..."></textarea>
+            </div>
+            <div class="form-group">
+                <label>Scheduled Date & Time *</label>
+                <input type="datetime-local" id="maintenanceDate">
+            </div>
+            <div class="form-group">
+                <label>Estimated Duration</label>
+                <input type="text" id="maintenanceDuration" placeholder="e.g., 2 hours, 1 day">
+            </div>
+            <div class="form-group">
+                <label>Priority</label>
+                <select id="maintenancePriority">
+                    <option value="low">Low</option>
+                    <option value="normal" selected>Normal</option>
+                    <option value="high">High</option>
+                    <option value="emergency">Emergency</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Assign Technicians (select multiple)</label>
+                <select id="maintenanceTechnicians" multiple size="4">
+                    <option value="">Loading technicians...</option>
+                </select>
+                <div class="help-text">Hold Ctrl/Cmd to select multiple technicians</div>
+            </div>
+            <div class="form-group">
+                <label>Affected Estates (comma separated)</label>
+                <input type="text" id="maintenanceEstates" placeholder="e.g., Greenview Estate, Alpha Court">
+                <div class="help-text">Leave empty to notify all tenants</div>
+            </div>
+            <div class="form-group">
+                <label>Additional Notes</label>
+                <textarea id="maintenanceNotes" rows="2" placeholder="Any additional information..."></textarea>
+            </div>
+            <button class="btn-submit" onclick="createMaintenance()">Schedule Maintenance</button>
+            <button class="btn-cancel" onclick="closeMaintenanceModal()">Cancel</button>
+        </div>
+    </div>
+    
+    <!-- View Maintenance Schedules Modal -->
+    <div id="viewSchedulesModal" class="modal">
+        <div class="modal-content" style="max-width: 700px;">
+            <div class="modal-header">
+                <h2>Maintenance Schedules</h2>
+                <button class="modal-close" onclick="closeViewSchedulesModal()">&times;</button>
+            </div>
+            <div id="schedulesList" style="max-height: 60vh; overflow-y: auto;"></div>
+        </div>
+    </div>
+    
+    <script>
+        let token = localStorage.getItem('token');
+        let socket = null;
+        let currentIssueId = null;
+        let currentUser = null;
+        
+        document.addEventListener('DOMContentLoaded', async () => {
+            token = localStorage.getItem('token');
+            if (!token) { 
+                window.location.href = '/'; 
+                return; 
+            }
+            await loadUserData();
+            setupWebSocket();
+            showTab('issues');
+        });
+        
+        function setupWebSocket() {
+            socket = io();
+            socket.on('connect', () => {
+                const user = JSON.parse(localStorage.getItem('user') || '{}');
+                if (user.id) socket.emit('authenticate', user.id);
+            });
+            socket.on('notification', (n) => { 
+                showToast(n.title); 
+                loadIssues();
+                if (n.type === 'maintenance') {
+                    loadUpcomingMaintenance();
+                }
+                if (n.type === 'registration_request') {
+                    loadRegistrationRequests();
+                    const pendingCount = document.getElementById('pendingCount');
+                    pendingCount.style.display = 'inline-block';
+                    pendingCount.innerText = 'New';
+                }
+            });
+        }
+        
+        async function loadUserData() {
+            try {
+                const user = JSON.parse(localStorage.getItem('user') || '{}');
+                currentUser = user;
+                document.getElementById('userName').innerText = user.name || 'Landlord';
+                document.getElementById('userEmail').innerText = user.email || '';
+                document.getElementById('userAvatar').innerText = (user.name || 'L').charAt(0);
+                
+                const apartments = user.apartments || [];
+                const estateNames = [...new Set(apartments.map(a => a.estate_name))];
+                document.getElementById('propertyCount').innerHTML = `🏘️ ${apartments.length} units`;
+                document.getElementById('propertySummary').innerHTML = `Managing ${apartments.length} properties across ${estateNames.length} estates`;
+                
+                await loadTenantsForSelect();
+                
+                const hour = new Date().getHours();
+                const greet = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
+                document.getElementById('greeting').innerHTML = `${greet}, ${(user.name || 'Landlord').split(' ')[0]} 👋`;
+                
+                if (user.pendingRegistrations > 0) {
+                    document.getElementById('pendingCount').style.display = 'inline-block';
+                    document.getElementById('pendingCount').innerText = user.pendingRegistrations;
+                }
+            } catch(err) {}
+        }
+        
+        function showTab(tab) {
+            document.getElementById('issuesTab').style.display = tab === 'issues' ? 'block' : 'none';
+            document.getElementById('tenantsTab').style.display = tab === 'tenants' ? 'block' : 'none';
+            document.getElementById('techniciansTab').style.display = tab === 'technicians' ? 'block' : 'none';
+            document.getElementById('maintenanceTab').style.display = tab === 'maintenance' ? 'block' : 'none';
+            document.getElementById('broadcastTab').style.display = tab === 'broadcast' ? 'block' : 'none';
+            document.getElementById('registrationsTab').style.display = tab === 'registrations' ? 'block' : 'none';
+            document.getElementById('reportsTab').style.display = tab === 'reports' ? 'block' : 'none';
+            
+            document.querySelectorAll('.nav-item').forEach((item, idx) => {
+                item.classList.remove('active');
+                const itemText = item.innerText.trim();
+                if ((tab === 'issues' && itemText.includes('Issues')) ||
+                    (tab === 'tenants' && itemText.includes('Tenants')) ||
+                    (tab === 'technicians' && itemText.includes('Technicians')) ||
+                    (tab === 'maintenance' && itemText.includes('Maintenance')) ||
+                    (tab === 'broadcast' && itemText.includes('Broadcast')) ||
+                    (tab === 'registrations' && itemText.includes('Pending')) ||
+                    (tab === 'reports' && itemText.includes('Reports'))) {
+                    item.classList.add('active');
+                }
+            });
+            
+            if (tab === 'issues') loadIssues();
+            if (tab === 'tenants') {
+                loadTenants();
+                loadRemovedTenants();
+            }
+            if (tab === 'technicians') loadTechnicians();
+            if (tab === 'maintenance') loadUpcomingMaintenance();
+            if (tab === 'broadcast') loadBroadcasts();
+            if (tab === 'registrations') loadRegistrationRequests();
+            if (tab === 'reports') loadReports();
+        }
+        
+        // ==================== REMOVED TENANTS FUNCTIONS ====================
+        
+        // Load removed tenants
+        async function loadRemovedTenants() {
+            try {
+                const res = await fetch('/api/landlord/tenants/removed', { 
+                    headers: { 'Authorization': `Bearer ${token}` } 
+                });
+                const tenants = await res.json();
+                
+                const container = document.getElementById('removedTenantsList');
+                if (!tenants.length) {
+                    container.innerHTML = '<div class="empty-state" style="grid-column:1/-1; padding: 20px;"><p style="color: var(--muted);">No removed tenants.</p></div>';
+                    return;
+                }
+                
+                container.innerHTML = tenants.map(t => `
+                    <div class="table-row" style="grid-template-columns: 1.5fr 1.5fr 1.5fr 1fr 2fr; background: #fff5f5;">
+                        <span><strong>${escapeHtml(t.full_name)}</strong></span>
+                        <span style="color: var(--muted);">${escapeHtml(t.email)}</span>
+                        <span>${escapeHtml(t.estate_name)}</span>
+                        <span>${escapeHtml(t.unit_number)}</span>
+                        <span style="display: flex; gap: 6px; flex-wrap: wrap;">
+                            <button class="action-btn btn-approve" onclick="restoreTenant(${t.id}, '${escapeHtml(t.full_name)}')">🔄 Restore</button>
+                            <button class="btn-danger" onclick="permanentDeleteTenant(${t.id}, '${escapeHtml(t.full_name)}')">🗑️ Delete</button>
+                        </span>
+                    </div>
+                `).join('');
+            } catch(err) {
+                console.error(err);
+                showToast('Failed to load removed tenants');
+            }
+        }
+        
+        // Restore a tenant
+        async function restoreTenant(tenantId, tenantName) {
+            if (!confirm(`Restore tenant "${tenantName}"? They will be added back to the active tenants list and their apartment will be occupied.`)) return;
+            
+            try {
+                const res = await fetch(`/api/landlord/tenants/${tenantId}/restore`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                if (res.ok) {
+                    showToast(`"${tenantName}" has been restored!`);
+                    loadTenants();
+                    loadRemovedTenants();
+                    loadReports();
+                } else {
+                    const err = await res.json();
+                    showToast(err.error || 'Restore failed');
+                }
+            } catch(err) {
+                showToast('Network error');
+            }
+        }
+        
+        // Permanently delete a tenant
+        async function permanentDeleteTenant(tenantId, tenantName) {
+            if (!confirm(`⚠️ PERMANENT DELETE: This will completely remove "${tenantName}" from the system. This cannot be undone! Are you sure?`)) return;
+            
+            if (!confirm(`⚠️ FINAL WARNING: Are you absolutely sure you want to permanently delete "${tenantName}"?`)) return;
+            
+            try {
+                const res = await fetch(`/api/landlord/tenants/${tenantId}/permanent`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                if (res.ok) {
+                    showToast(`"${tenantName}" has been permanently deleted.`);
+                    loadTenants();
+                    loadRemovedTenants();
+                    loadReports();
+                } else {
+                    const err = await res.json();
+                    showToast(err.error || 'Delete failed');
+                }
+            } catch(err) {
+                showToast('Network error');
+            }
+        }
+        
+        // ==================== ISSUES FUNCTIONS ====================
+        
+        async function loadIssues() {
+            const status = document.getElementById('filterStatus').value;
+            const risk = document.getElementById('filterRisk').value;
+            let url = `/api/issues?${status ? `status=${status}&` : ''}${risk ? `risk_level=${risk}` : ''}`;
+            
+            try {
+                const res = await fetch(url, { headers: { 'Authorization': `Bearer ${token}` } });
+                const issues = await res.json();
+                
+                document.getElementById('statTotal').innerText = issues.length;
+                document.getElementById('statOpen').innerText = issues.filter(i => i.status === 'Open').length;
+                document.getElementById('statUrgent').innerText = issues.filter(i => i.risk_level === 'Urgent').length;
+                document.getElementById('statEmergency').innerText = issues.filter(i => i.risk_level === 'Emergency').length;
+                
+                const container = document.getElementById('issuesContainer');
+                if (!issues.length) { 
+                    container.innerHTML = '<div class="empty-state"><h3>No issues reported</h3><p>Issues from your tenants will appear here.</p></div>'; 
+                    return; 
+                }
+                
+                container.innerHTML = issues.map(issue => `
+                    <div class="issue-card ${issue.risk_level === 'Emergency' && issue.status !== 'Resolved' ? 'emergency-priority' : ''}">
+                        <div class="issue-header">
+                            <div>
+                                <h3 class="issue-title">${escapeHtml(issue.title)}</h3>
+                                <div class="tenant-info">
+                                    👤 ${escapeHtml(issue.tenant_name)} · 📍 ${issue.estate_name} Unit ${issue.unit_number}
+                                    ${issue.tenant_phone ? ` · 📞 ${issue.tenant_phone}` : ''}
+                                </div>
+                            </div>
+                            <div>
+                                <span class="risk-badge risk-${issue.risk_level?.replace(' ', '-')}">${issue.risk_level}</span>
+                                <span class="status-badge status-${issue.status?.replace(' ', '-')}">${issue.status}</span>
+                            </div>
+                        </div>
+                        <p style="margin:8px 0;">${escapeHtml(issue.description)}</p>
+                        ${issue.photo_url ? `<img src="${issue.photo_url}" style="max-width:150px; border-radius:8px; margin:8px 0;">` : ''}
+                        <div class="issue-actions">
+                            ${!issue.assigned_technician_id ? 
+                                `<button class="action-btn btn-assign" onclick="openAssignModal(${issue.id})">📋 Assign Technician</button>` : 
+                                `<div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+                                    <span class="status-badge" style="background:#e8f5e9;color:#2e7d32;">👨‍🔧 Assigned: ${escapeHtml(issue.technician_name)}</span>
+                                    <button class="action-btn btn-warning" onclick="openChangeTechnicianModal(${issue.id}, '${escapeHtml(issue.technician_name)}')">🔄 Change</button>
+                                    <button class="action-btn btn-danger" onclick="unassignTechnician(${issue.id})">❌ Remove</button>
+                                </div>`
+                            }
+                            ${issue.status === 'Open' ? 
+                                `<button class="action-btn btn-progress" onclick="updateStatus(${issue.id}, 'In Progress')">⚙️ Mark In Progress</button>` : ''}
+                            ${issue.status === 'In Progress' ? 
+                                `<button class="action-btn btn-resolve" onclick="updateStatus(${issue.id}, 'Resolved')">✅ Mark Resolved</button>` : ''}
+                        </div>
+                    </div>
+                `).join('');
+            } catch(err) { showToast('Failed to load issues'); }
+        }
+        
+        async function updateStatus(issueId, newStatus) {
+            try {
+                const res = await fetch(`/api/issues/${issueId}/status`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                    body: JSON.stringify({ status: newStatus })
+                });
+                if (res.ok) { showToast(`Status updated to ${newStatus}`); loadIssues(); }
+                else { const error = await res.json(); showToast(error.error || 'Update failed'); }
+            } catch(e) { showToast('Network error: ' + e.message); }
+        }
+        
+        // ==================== TENANTS FUNCTIONS ====================
+        
+        async function loadTenants() {
+            try {
+                const res = await fetch('/api/landlord/tenants', { headers: { 'Authorization': `Bearer ${token}` } });
+                const tenants = await res.json();
+                
+                const container = document.getElementById('tenantsList');
+                if (!tenants.length) {
+                    container.innerHTML = '<div class="empty-state" style="grid-column:1/-1"><p>No active tenants registered under your properties yet.</p></div>';
+                    return;
+                }
+                
+                container.innerHTML = tenants.map(t => `
+                    <div class="table-row" style="grid-template-columns: 1.5fr 1.5fr 1.5fr 1fr 1fr;">
+                        <span><strong>${escapeHtml(t.full_name)}</strong></span>
+                        <span>${escapeHtml(t.email)}</span>
+                        <span>${escapeHtml(t.estate_name)}</span>
+                        <span>${escapeHtml(t.unit_number)}</span>
+                        <span><button class="btn-danger" onclick="removeTenant(${t.id}, '${escapeHtml(t.full_name)}', '${escapeHtml(t.estate_name)} ${escapeHtml(t.unit_number)}')">Remove</button></span>
+                    </div>
+                `).join('');
+            } catch(err) { showToast('Failed to load tenants'); }
+        }
+        
+        async function removeTenant(tenantId, tenantName, apartmentInfo) {
+            if (!confirm(`Remove tenant "${tenantName}" from ${apartmentInfo}? They will be moved to the removed tenants list.`)) return;
+            
+            try {
+                const res = await fetch(`/api/landlord/tenants/${tenantId}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                if (res.ok) {
+                    showToast(`"${tenantName}" has been removed.`);
+                    loadTenants();
+                    loadRemovedTenants();
+                    loadIssues();
+                    loadReports();
+                } else {
+                    const err = await res.json();
+                    showToast(err.error);
+                }
+            } catch(err) {
+                showToast('Network error');
+            }
+        }
+        
+        // ==================== TECHNICIANS FUNCTIONS ====================
+        
+        async function loadTechnicians() {
+            try {
+                const res = await fetch('/api/technicians/my', { headers: { 'Authorization': `Bearer ${token}` } });
+                const technicians = await res.json();
+                
+                const container = document.getElementById('techniciansList');
+                if (!technicians.length) {
+                    container.innerHTML = '<div class="empty-state" style="grid-column:1/-1"><p>No technicians registered. Click "Register Technician" to add.</p></div>';
+                    return;
+                }
+                
+                container.innerHTML = technicians.map(tech => `
+                    <div class="table-row" style="grid-template-columns: 1.5fr 2fr 1fr 1.5fr 1fr;">
+                        <span><strong>${escapeHtml(tech.full_name)}</strong></span>
+                        <span>${escapeHtml(tech.email)}</span>
+                        <span>${escapeHtml(tech.phone || '-')}</span>
+                        <span>
+                            ${tech.skills && tech.skills.length > 0 ? 
+                                `<div style="display:flex; flex-wrap:wrap; gap:4px;">${tech.skills.map(s => `<span class="status-badge" style="background:var(--g8);">${escapeHtml(s)}</span>`).join('')}</div>` : 
+                                '<span class="status-badge">No skills listed</span>'}
+                            <div style="font-size:0.65rem; margin-top:4px;">📋 ${tech.active_assignments || 0} active assignments</div>
+                        </span>
+                        <span>
+                            <button class="btn-danger" onclick="removeTechnician(${tech.id}, '${escapeHtml(tech.full_name)}')">🗑 Remove</button>
+                        </span>
+                    </div>
+                `).join('');
+            } catch(err) { 
+                showToast('Failed to load technicians');
+                console.error(err);
+            }
+        }
+        
+        async function removeTechnician(techId, techName) {
+            if (!confirm(`Remove technician "${techName}"? They will no longer be able to login.`)) return;
+            
+            try {
+                const res = await fetch(`/api/technicians/${techId}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                const data = await res.json();
+                
+                if (res.ok) {
+                    showToast(`Technician "${techName}" removed successfully`);
+                    loadTechnicians();
+                    loadTechniciansForAssign();
+                    loadTechniciansForChange();
+                    loadTechniciansForMaintenance();
+                } else {
+                    showToast(data.error || 'Failed to remove technician');
+                }
+            } catch(err) {
+                console.error(err);
+                showToast('Network error: ' + err.message);
+            }
+        }
+        
+        async function loadTechniciansForAssign() {
+            try {
+                const res = await fetch('/api/technicians/all', { headers: { 'Authorization': `Bearer ${token}` } });
+                const techs = await res.json();
+                const select = document.getElementById('technicianSelect');
+                select.innerHTML = '<option value="">Select Technician</option>';
+                techs.forEach(t => select.innerHTML += `<option value="${t.id}">${escapeHtml(t.full_name)} (${t.active_assignments} active) - Skills: ${t.skills.join(', ') || 'General'}</option>`);
+            } catch(e) {}
+        }
+        
+        async function loadTechniciansForChange() {
+            try {
+                const res = await fetch('/api/technicians/all', { headers: { 'Authorization': `Bearer ${token}` } });
+                const techs = await res.json();
+                const select = document.getElementById('changeTechnicianSelect');
+                select.innerHTML = '<option value="">Select Technician</option>';
+                techs.forEach(t => select.innerHTML += `<option value="${t.id}">${escapeHtml(t.full_name)} (${t.active_assignments} active) - Skills: ${t.skills.join(', ') || 'General'}</option>`);
+            } catch(e) {}
+        }
+        
+        async function loadTechniciansForMaintenance() {
+            try {
+                const res = await fetch('/api/technicians/all', { headers: { 'Authorization': `Bearer ${token}` } });
+                const techs = await res.json();
+                const select = document.getElementById('maintenanceTechnicians');
+                select.innerHTML = '';
+                techs.forEach(t => {
+                    select.innerHTML += `<option value="${t.id}">${escapeHtml(t.full_name)} (${t.active_assignments} active) - ${t.skills.join(', ') || 'General'}</option>`;
+                });
+            } catch(e) {}
+        }
+        
+        function openAssignModal(id) { 
+            currentIssueId = id; 
+            loadTechniciansForAssign();
+            document.getElementById('assignModal').style.display = 'flex'; 
+        }
+        function closeAssignModal() { document.getElementById('assignModal').style.display = 'none'; }
+        
+        async function assignTechnician() {
+            const techId = document.getElementById('technicianSelect').value;
+            if (!techId) { showToast('Select technician'); return; }
+            try {
+                const res = await fetch(`/api/issues/${currentIssueId}/assign`, {
+                    method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                    body: JSON.stringify({ technician_id: parseInt(techId) })
+                });
+                if (res.ok) { showToast('Technician assigned!'); closeAssignModal(); loadIssues(); }
+                else showToast('Assignment failed');
+            } catch(e) { showToast('Network error'); }
+        }
+        
+        function openChangeTechnicianModal(issueId, currentTech) {
+            currentIssueId = issueId;
+            document.getElementById('changeTechIssueInfo').innerHTML = `Issue #${issueId} - Current: ${currentTech}`;
+            loadTechniciansForChange();
+            document.getElementById('changeTechnicianModal').style.display = 'flex';
+        }
+        function closeChangeTechnicianModal() { document.getElementById('changeTechnicianModal').style.display = 'none'; }
+        
+        async function changeTechnician() {
+            const techId = document.getElementById('changeTechnicianSelect').value;
+            if (!techId) { showToast('Select technician'); return; }
+            try {
+                const res = await fetch(`/api/issues/${currentIssueId}/technician`, {
+                    method: 'PUT', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                    body: JSON.stringify({ technician_id: parseInt(techId) })
+                });
+                if (res.ok) { showToast('Technician changed!'); closeChangeTechnicianModal(); loadIssues(); }
+                else showToast('Change failed');
+            } catch(e) { showToast('Network error'); }
+        }
+        
+        async function unassignTechnician(issueId) {
+            if (!confirm('Remove technician from this issue?')) return;
+            try {
+                const res = await fetch(`/api/issues/${issueId}/technician`, {
+                    method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (res.ok) { showToast('Technician removed'); loadIssues(); }
+                else showToast('Remove failed');
+            } catch(e) { showToast('Network error'); }
+        }
+        
+        async function addTechnician() {
+            const name = document.getElementById('techName').value.trim();
+            const email = document.getElementById('techEmail').value.trim();
+            const phone = document.getElementById('techPhone').value.trim();
+            const password = document.getElementById('techPassword').value;
+            const skillsInput = document.getElementById('techSkills').value.trim();
+            const skills = skillsInput ? skillsInput.split(',').map(s => s.trim()) : [];
+            
+            if (!name || !email || !password) { showToast('Fill required fields'); return; }
+            if (password.length < 6) { showToast('Password must be 6+ chars'); return; }
+            
+            try {
+                const res = await fetch('/api/register/technician', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                    body: JSON.stringify({ full_name: name, email, phone, password, skills })
+                });
+                if (res.ok) { showToast(`Technician "${name}" created`); closeTechnicianModal(); loadTechnicians(); }
+                else { const err = await res.json(); showToast(err.error); }
+            } catch(e) { showToast('Network error'); }
+        }
+        
+        function openTechnicianModal() { document.getElementById('technicianModal').style.display = 'flex'; }
+        function closeTechnicianModal() { document.getElementById('technicianModal').style.display = 'none'; document.getElementById('techName').value = ''; document.getElementById('techEmail').value = ''; document.getElementById('techPhone').value = ''; document.getElementById('techPassword').value = ''; document.getElementById('techSkills').value = ''; }
+        
+        function openBroadcastModal() { 
+            document.getElementById('broadcastModal').style.display = 'flex'; 
+            loadTenantsForSelect();
+        }
+        function closeBroadcastModal() { document.getElementById('broadcastModal').style.display = 'none'; document.getElementById('broadcastTitle').value = ''; document.getElementById('broadcastMessage').value = ''; }
+        
+        function toggleTenantSelect() {
+            const target = document.getElementById('broadcastTarget').value;
+            document.getElementById('specificTenantGroup').style.display = target === 'specific' ? 'block' : 'none';
+        }
+        
+        async function loadTenantsForSelect() {
+            try {
+                const res = await fetch('/api/landlord/tenants', { headers: { 'Authorization': `Bearer ${token}` } });
+                const tenants = await res.json();
+                const select = document.getElementById('specificTenant');
+                select.innerHTML = '<option value="">Select Tenant</option>';
+                tenants.forEach(t => select.innerHTML += `<option value="${t.id}">${escapeHtml(t.full_name)} - ${escapeHtml(t.estate_name)} Unit ${escapeHtml(t.unit_number)}</option>`);
+            } catch(e) {}
+        }
+        
+        async function sendBroadcast() {
+            const title = document.getElementById('broadcastTitle').value.trim();
+            const message = document.getElementById('broadcastMessage').value.trim();
+            const target = document.getElementById('broadcastTarget').value;
+            const specificTenantId = document.getElementById('specificTenant').value;
+            
+            if (!title || !message) { showToast('Enter title and message'); return; }
+            
+            try {
+                const body = target === 'specific' && specificTenantId 
+                    ? { title, message, specific_tenant_id: parseInt(specificTenantId) }
+                    : { title, message, target_estate: 'all' };
+                
+                const res = await fetch('/api/notifications/broadcast', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                    body: JSON.stringify(body)
+                });
+                if (res.ok) { 
+                    const data = await res.json();
+                    showToast(`Broadcast sent to ${data.recipients_count} tenant(s)`); 
+                    closeBroadcastModal(); 
+                    loadBroadcasts(); 
+                }
+                else showToast('Failed');
+            } catch(e) { showToast('Network error'); }
+        }
+        
+        async function loadBroadcasts() {
+            try {
+                const res = await fetch('/api/notifications/broadcasts/sent', { headers: { 'Authorization': `Bearer ${token}` } });
+                const broadcasts = await res.json();
+                const container = document.getElementById('broadcastsContainer');
+                if (!broadcasts.length) { 
+                    container.innerHTML = '<div class="empty-state"><h3>No broadcasts sent yet</h3><p>Use the "Send Broadcast" button to notify your tenants.</p></div>'; 
+                    return; 
+                }
+                container.innerHTML = broadcasts.map(n => `
+                    <div class="issue-card">
+                        <div class="issue-header">
+                            <h3 class="issue-title">📢 ${escapeHtml(n.title)}</h3>
+                            <span class="notification-time" style="font-size:0.7rem; color:var(--muted);">${new Date(n.created_at).toLocaleString()}</span>
+                        </div>
+                        <p>${escapeHtml(n.message)}</p>
+                    </div>
+                `).join('');
+            } catch(e) { console.error(e); }
+        }
+        
+        // ==================== REGISTRATION REQUESTS ====================
+        
+        async function loadRegistrationRequests() {
+            try {
+                const res = await fetch('/api/landlord/registration-requests', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const requests = await res.json();
+                
+                const container = document.getElementById('registrationsContainer');
+                if (requests.length === 0) {
+                    container.innerHTML = '<div class="empty-state"><p>No pending registration requests.</p></div>';
+                    document.getElementById('pendingCount').style.display = 'none';
+                    return;
+                }
+                
+                document.getElementById('pendingCount').style.display = 'inline-block';
+                document.getElementById('pendingCount').innerText = requests.length;
+                
+                container.innerHTML = requests.map(req => `
+                    <div class="issue-card">
+                        <div class="issue-header">
+                            <div>
+                                <h3 class="issue-title">${escapeHtml(req.full_name)}</h3>
+                                <div class="tenant-info">
+                                    📧 ${escapeHtml(req.email)}<br>
+                                    📞 ${escapeHtml(req.phone || 'Not provided')}<br>
+                                    🏢 ${escapeHtml(req.estate_name)} Unit ${escapeHtml(req.unit_number)}
+                                </div>
+                            </div>
+                            <div>
+                                <span class="risk-badge risk-Urgent">⏰ Expires: ${new Date(req.expires_at).toLocaleString()}</span>
+                            </div>
+                        </div>
+                        <div class="issue-actions" style="margin-top: 12px;">
+                            <button class="action-btn btn-approve" onclick="approveRegistration(${req.id})">✅ Approve</button>
+                            <button class="action-btn btn-reject" onclick="rejectRegistration(${req.id})">❌ Reject</button>
+                        </div>
+                    </div>
+                `).join('');
+            } catch (err) {
+                console.error(err);
+            }
+        }
+        
+        async function approveRegistration(requestId) {
+            if (!confirm('Approve this tenant registration?')) return;
+            try {
+                const res = await fetch(`/api/landlord/registration-requests/${requestId}/approve`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (res.ok) {
+                    showToast('Tenant approved successfully');
+                    loadRegistrationRequests();
+                    loadTenants();
+                    loadReports();
+                } else {
+                    showToast('Approval failed');
+                }
+            } catch (err) {
+                showToast('Network error');
+            }
+        }
+        
+        async function rejectRegistration(requestId) {
+            if (!confirm('Reject this tenant registration?')) return;
+            try {
+                const res = await fetch(`/api/landlord/registration-requests/${requestId}/reject`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (res.ok) {
+                    showToast('Tenant rejected');
+                    loadRegistrationRequests();
+                } else {
+                    showToast('Rejection failed');
+                }
+            } catch (err) {
+                showToast('Network error');
+            }
+        }
+        
+        // ==================== MAINTENANCE SCHEDULE FUNCTIONS ====================
+        
+        function openMaintenanceModal() {
+            loadTechniciansForMaintenance();
+            document.getElementById('maintenanceModal').style.display = 'flex';
+            document.getElementById('maintenanceDate').value = new Date().toISOString().slice(0, 16);
+        }
+        
+        function closeMaintenanceModal() {
+            document.getElementById('maintenanceModal').style.display = 'none';
+            document.getElementById('maintenanceTitle').value = '';
+            document.getElementById('maintenanceDesc').value = '';
+            document.getElementById('maintenanceDuration').value = '';
+            document.getElementById('maintenanceEstates').value = '';
+            document.getElementById('maintenanceNotes').value = '';
+        }
+        
+        async function createMaintenance() {
+            const title = document.getElementById('maintenanceTitle').value.trim();
+            const description = document.getElementById('maintenanceDesc').value.trim();
+            const scheduled_date = document.getElementById('maintenanceDate').value;
+            const estimated_duration = document.getElementById('maintenanceDuration').value.trim();
+            const priority = document.getElementById('maintenancePriority').value;
+            const affected_estates = document.getElementById('maintenanceEstates').value.trim();
+            const notes = document.getElementById('maintenanceNotes').value.trim();
+            const technicianSelect = document.getElementById('maintenanceTechnicians');
+            const selectedTechnicians = Array.from(technicianSelect.selectedOptions).map(opt => parseInt(opt.value));
+            
+            if (!title || !scheduled_date) {
+                showToast('Please enter title and scheduled date');
+                return;
+            }
+            
+            try {
+                const res = await fetch('/api/maintenance/schedule', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                    body: JSON.stringify({ 
+                        title, description, scheduled_date, estimated_duration, priority, 
+                        affected_estates, notes, assigned_technician_ids: selectedTechnicians 
+                    })
+                });
+                
+                if (res.ok) {
+                    const data = await res.json();
+                    showToast(`Maintenance scheduled for ${selectedTechnicians.length} technician(s)`);
+                    closeMaintenanceModal();
+                    loadUpcomingMaintenance();
+                    if (document.getElementById('viewSchedulesModal').style.display === 'flex') {
+                        viewSchedules();
+                    }
+                } else {
+                    const err = await res.json();
+                    showToast(err.error || 'Failed to schedule');
+                }
+            } catch(e) {
+                showToast('Network error');
+            }
+        }
+        
+        async function loadUpcomingMaintenance() {
+            try {
+                const res = await fetch('/api/maintenance/schedules', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const schedules = await res.json();
+                const upcoming = schedules.filter(s => s.status !== 'completed' && s.status !== 'cancelled');
+                
+                const container = document.getElementById('upcomingMaintenance');
+                if (upcoming.length === 0) {
+                    container.innerHTML = '<div class="empty-state"><p>No upcoming maintenance schedules.</p></div>';
+                } else {
+                    container.innerHTML = upcoming.map(s => `
+                        <div class="issue-card">
+                            <div class="issue-header">
+                                <h3 class="issue-title">🔧 ${escapeHtml(s.title)}</h3>
+                                <span class="status-badge">${s.status}</span>
+                            </div>
+                            <p><strong>📅 Date:</strong> ${new Date(s.scheduled_date).toLocaleString()}</p>
+                            ${s.description ? `<p><strong>📝 Description:</strong> ${escapeHtml(s.description)}</p>` : ''}
+                            ${s.estimated_duration ? `<p><strong>⏱️ Duration:</strong> ${escapeHtml(s.estimated_duration)}</p>` : ''}
+                            ${s.affected_estates ? `<p><strong>🏢 Affected:</strong> ${escapeHtml(s.affected_estates)}</p>` : ''}
+                            ${s.technician_name ? `<p><strong>👨‍🔧 Technician:</strong> ${escapeHtml(s.technician_name)}</p>` : ''}
+                            <div class="issue-actions" style="margin-top:12px;">
+                                <select onchange="updateMaintenanceStatus(${s.id}, this.value)" class="action-btn" style="padding:4px 8px;">
+                                    <option value="scheduled" ${s.status === 'scheduled' ? 'selected' : ''}>Scheduled</option>
+                                    <option value="in_progress" ${s.status === 'in_progress' ? 'selected' : ''}>In Progress</option>
+                                    <option value="completed" ${s.status === 'completed' ? 'selected' : ''}>Completed</option>
+                                    <option value="cancelled" ${s.status === 'cancelled' ? 'selected' : ''}>Cancelled</option>
+                                </select>
+                                <button class="action-btn btn-danger" onclick="deleteMaintenance(${s.id})">Delete</button>
+                            </div>
+                        </div>
+                    `).join('');
+                }
+            } catch(e) {
+                showToast('Failed to load maintenance schedules');
+            }
+        }
+        
+        async function viewSchedules() {
+            try {
+                const res = await fetch('/api/maintenance/schedules', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const schedules = await res.json();
+                
+                const container = document.getElementById('schedulesList');
+                if (schedules.length === 0) {
+                    container.innerHTML = '<div class="empty-state"><p>No maintenance schedules found.</p></div>';
+                } else {
+                    container.innerHTML = schedules.map(s => `
+                        <div class="issue-card" style="margin-bottom:12px;">
+                            <div class="issue-header">
+                                <h3 class="issue-title">🔧 ${escapeHtml(s.title)}</h3>
+                                <span class="status-badge">${s.status}</span>
+                            </div>
+                            <p><strong>📅 Date:</strong> ${new Date(s.scheduled_date).toLocaleString()}</p>
+                            ${s.description ? `<p><strong>📝 Description:</strong> ${escapeHtml(s.description)}</p>` : ''}
+                            ${s.estimated_duration ? `<p><strong>⏱️ Duration:</strong> ${escapeHtml(s.estimated_duration)}</p>` : ''}
+                            ${s.affected_estates ? `<p><strong>🏢 Affected:</strong> ${escapeHtml(s.affected_estates)}</p>` : ''}
+                            ${s.technician_name ? `<p><strong>👨‍🔧 Technician:</strong> ${escapeHtml(s.technician_name)}</p>` : ''}
+                            <div class="issue-actions" style="margin-top:12px;">
+                                <select onchange="updateMaintenanceStatus(${s.id}, this.value)" class="action-btn" style="padding:4px 8px;">
+                                    <option value="scheduled" ${s.status === 'scheduled' ? 'selected' : ''}>Scheduled</option>
+                                    <option value="in_progress" ${s.status === 'in_progress' ? 'selected' : ''}>In Progress</option>
+                                    <option value="completed" ${s.status === 'completed' ? 'selected' : ''}>Completed</option>
+                                    <option value="cancelled" ${s.status === 'cancelled' ? 'selected' : ''}>Cancelled</option>
+                                </select>
+                                <button class="action-btn btn-danger" onclick="deleteMaintenance(${s.id})">Delete</button>
+                            </div>
+                        </div>
+                    `).join('');
+                }
+                document.getElementById('viewSchedulesModal').style.display = 'flex';
+            } catch(e) {
+                showToast('Failed to load schedules');
+            }
+        }
+        
+        function closeViewSchedulesModal() {
+            document.getElementById('viewSchedulesModal').style.display = 'none';
+        }
+        
+        async function updateMaintenanceStatus(scheduleId, status) {
+            try {
+                const res = await fetch(`/api/maintenance/schedules/${scheduleId}/status`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                    body: JSON.stringify({ status })
+                });
+                if (res.ok) {
+                    showToast('Status updated');
+                    loadUpcomingMaintenance();
+                    if (document.getElementById('viewSchedulesModal').style.display === 'flex') {
+                        viewSchedules();
+                    }
+                } else {
+                    showToast('Update failed');
+                }
+            } catch(e) {
+                showToast('Network error');
+            }
+        }
+        
+        async function deleteMaintenance(scheduleId) {
+            if (!confirm('Delete this maintenance schedule?')) return;
+            try {
+                const res = await fetch(`/api/maintenance/schedules/${scheduleId}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (res.ok) {
+                    showToast('Schedule deleted');
+                    loadUpcomingMaintenance();
+                    if (document.getElementById('viewSchedulesModal').style.display === 'flex') {
+                        viewSchedules();
+                    }
+                } else {
+                    showToast('Delete failed');
+                }
+            } catch(e) {
+                showToast('Network error');
+            }
+        }
+        
+        // ==================== REPORTS & ANALYTICS ====================
+        
+        async function loadReports() {
+            try {
+                const res = await fetch('/api/landlord/reports', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await res.json();
+                
+                document.getElementById('reportTotalApts').innerText = data.apartments?.total_apartments || 0;
+                document.getElementById('reportOccupiedUnits').innerText = data.apartments?.occupied_apartments || 0;
+                document.getElementById('reportOccupancyRate').innerText = (data.apartments?.occupancy_rate || 0) + '%';
+                document.getElementById('reportTotalTenants').innerText = data.tenants?.total_tenants || 0;
+                
+                document.getElementById('reportTotalIssues').innerText = data.issues?.total_issues || 0;
+                document.getElementById('reportOpenIssues').innerText = data.issues?.open_issues || 0;
+                document.getElementById('reportResolvedIssues').innerText = data.issues?.resolved_issues || 0;
+                document.getElementById('reportResolutionTime').innerText = (data.avg_resolution_hours || 0) + 'h';
+                
+                if (data.issues_by_month && data.issues_by_month.length > 0) {
+                    const chartContainer = document.getElementById('issuesChartContainer');
+                    let chartHtml = '<div class="bar-chart">';
+                    for (const item of data.issues_by_month.slice(0, 6)) {
+                        const width = Math.min(100, (item.count / Math.max(...data.issues_by_month.map(i => i.count), 1)) * 100);
+                        chartHtml += `
+                            <div class="bar-item">
+                                <div class="bar-label">${escapeHtml(item.month)}</div>
+                                <div class="bar-fill" style="width: ${width}%;">${item.count}</div>
+                            </div>
+                        `;
+                    }
+                    chartHtml += '</div>';
+                    chartContainer.innerHTML = chartHtml;
+                } else {
+                    document.getElementById('issuesChartContainer').innerHTML = '<p>No data available</p>';
+                }
+                
+                const estatesContainer = document.getElementById('estatesPerformanceList');
+                if (data.estates_performance && data.estates_performance.length > 0) {
+                    estatesContainer.innerHTML = data.estates_performance.map(estate => `
+                        <div style="margin-bottom: 16px; padding: 12px; background: var(--g8); border-radius: 8px;">
+                            <div style="font-weight: 600; margin-bottom: 8px;">🏢 ${escapeHtml(estate.estate_name)}</div>
+                            <div style="display: flex; gap: 16px; font-size: 0.75rem;">
+                                <span>Units: ${estate.units}</span>
+                                <span>Occupied: ${estate.occupied_units} (${Math.round(estate.occupied_units/estate.units*100)}%)</span>
+                                <span>Issues: ${estate.issues_reported}</span>
+                                <span>Resolved: ${estate.issues_resolved}</span>
+                            </div>
+                            <div style="margin-top: 6px; height: 6px; background: var(--border); border-radius: 3px; overflow: hidden;">
+                                <div style="width: ${(estate.occupied_units/estate.units)*100}%; height: 100%; background: var(--g4); border-radius: 3px;"></div>
+                            </div>
+                        </div>
+                    `).join('');
+                } else {
+                    estatesContainer.innerHTML = '<p>No estate data available</p>';
+                }
+                
+                const priorityContainer = document.getElementById('priorityChart');
+                if (data.issues) {
+                    const total = data.issues.total_issues || 1;
+                    const emergency = data.issues.emergency_issues || 0;
+                    const urgent = data.issues.urgent_issues || 0;
+                    const less = data.issues.less_urgent_issues || 0;
+                    
+                    priorityContainer.innerHTML = `
+                        <div class="bar-item">
+                            <div class="bar-label">Emergency</div>
+                            <div class="bar-fill" style="width: ${(emergency/total)*100}%; background: #e74c3c;">${emergency}</div>
+                        </div>
+                        <div class="bar-item">
+                            <div class="bar-label">Urgent</div>
+                            <div class="bar-fill" style="width: ${(urgent/total)*100}%; background: #e67e22;">${urgent}</div>
+                        </div>
+                        <div class="bar-item">
+                            <div class="bar-label">Less Urgent</div>
+                            <div class="bar-fill" style="width: ${(less/total)*100}%; background: var(--g4);">${less}</div>
+                        </div>
+                    `;
+                }
+            } catch (err) {
+                console.error(err);
+                showToast('Failed to load reports');
+            }
+        }
+        
+        function showToast(msg) { 
+            const t = document.createElement('div'); 
+            t.className = 'toast'; 
+            t.innerText = msg; 
+            document.body.appendChild(t); 
+            setTimeout(() => t.remove(), 3000); 
+        }
+        
+        function escapeHtml(str) { 
+            if (!str) return ''; 
+            return str.replace(/[&<>]/g, m => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;' }[m])); 
+        }
+        
+        function logout() { 
+            localStorage.clear(); 
+            window.location.href = '/'; 
+        }
+    </script>
+</body>
+</html>

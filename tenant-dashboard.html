@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PropCare — Tenant Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+    <script src="https://cdn.socket.io/4.6.1/socket.io.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root {
+            --g1: #0d3d2b; --g2: #155c40; --g3: #1e7a54;
+            --g4: #27a06e; --g5: #4dbb89; --g6: #a8dfc5;
+            --g7: #d4f0e4; --g8: #edfaf3;
+            --text: #0d1f18; --muted: #5a7a6b; --border: #c8e8d9;
+        }
+        body { font-family: 'DM Sans', sans-serif; background: #f0f7f3; }
+        
+        .sidebar {
+            width: 260px; height: 100vh; position: fixed; top: 0; left: 0;
+            background: var(--g1); padding: 28px 20px; display: flex;
+            flex-direction: column;
+        }
+        .sidebar-logo { display: flex; align-items: center; gap: 10px; margin-bottom: 36px; }
+        .sidebar-logo-icon {
+            width: 34px; height: 34px; background: var(--g4);
+            border-radius: 9px; display: flex; align-items: center; justify-content: center;
+        }
+        .sidebar-logo span { font-family: 'Cormorant Garamond', serif; font-size: 1.35rem; font-weight: 700; color: white; }
+        .nav-item {
+            display: flex; align-items: center; gap: 10px; padding: 10px 12px;
+            border-radius: 8px; color: var(--g6); cursor: pointer; margin-bottom: 4px;
+        }
+        .nav-item:hover, .nav-item.active { background: rgba(255,255,255,.12); color: white; }
+        .sidebar-user {
+            display: flex; align-items: center; gap: 10px; padding: 14px 0;
+            border-top: 1px solid rgba(255,255,255,.1);
+            border-bottom: 1px solid rgba(255,255,255,.1); margin: auto 0 14px 0;
+        }
+        .user-avatar {
+            width: 36px; height: 36px; border-radius: 50%; background: var(--g3);
+            display: flex; align-items: center; justify-content: center; color: white; font-weight: 500;
+        }
+        .sidebar-name { font-size: .88rem; font-weight: 500; color: white; }
+        .sidebar-email { font-size: .75rem; color: var(--g6); }
+        .logout {
+            display: flex; align-items: center; justify-content: center; gap: 8px;
+            padding: 10px; background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.18);
+            border-radius: 8px; color: var(--g6); cursor: pointer;
+        }
+        .logout:hover { background: rgba(255,255,255,.16); color: white; }
+        
+        .main { margin-left: 260px; padding: 32px 40px; }
+        .dash-header {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 28px; flex-wrap: wrap; gap: 16px;
+        }
+        .dash-header h1 { font-family: 'Cormorant Garamond', serif; font-size: 2rem; color: var(--g1); }
+        .report-btn {
+            display: flex; align-items: center; gap: 8px; padding: 12px 24px;
+            background: var(--g1); color: white; border: none; border-radius: 10px;
+            font-weight: 500; cursor: pointer;
+        }
+        .report-btn:hover { background: var(--g2); }
+        
+        .stats-row {
+            display: grid; grid-template-columns: repeat(4, 1fr);
+            gap: 14px; margin-bottom: 32px;
+        }
+        .stat-card {
+            background: white; border-radius: 12px; padding: 18px 20px;
+            border: 1.5px solid var(--border);
+        }
+        .stat-label { font-size: .72rem; font-weight: 500; color: var(--muted); text-transform: uppercase; }
+        .stat-value { font-family: 'Cormorant Garamond', serif; font-size: 2rem; font-weight: 700; color: var(--g1); }
+        .stat-card.emergency .stat-value { color: #c0392b; }
+        .stat-card.urgent .stat-value { color: #d07e0a; }
+        
+        .issue-card {
+            background: white; border-radius: 12px; padding: 16px 20px;
+            margin-bottom: 10px; border: 1.5px solid var(--border);
+        }
+        .issue-header { display: flex; justify-content: space-between; align-items: start; margin-bottom: 8px; }
+        .issue-title { font-size: 1rem; font-weight: 500; color: var(--text); }
+        .risk-badge {
+            padding: 4px 12px; border-radius: 20px; font-size: .7rem; font-weight: 500;
+        }
+        .risk-Emergency { background: #fdecea; color: #b71c1c; }
+        .risk-Urgent { background: #fff3e0; color: #e65100; }
+        .risk-Less\ Urgent { background: var(--g8); color: var(--g2); }
+        .status-badge {
+            padding: 4px 12px; border-radius: 20px; font-size: .7rem; font-weight: 500;
+            background: var(--g8); color: var(--g3);
+        }
+        .status-In\ Progress { background: #e3f2fd; color: #1565c0; }
+        .status-Resolved { background: #e8f5e9; color: #2e7d32; }
+        .issue-desc { color: var(--muted); font-size: .85rem; margin: 8px 0; }
+        .issue-meta { font-size: .7rem; color: var(--muted); margin-top: 8px; }
+        .issue-photo { max-width: 200px; margin-top: 8px; border-radius: 8px; cursor: pointer; }
+        
+        .notification-card {
+            background: white; border-radius: 12px; padding: 16px 20px;
+            margin-bottom: 10px; border: 1.5px solid var(--border);
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .notification-card.unread {
+            background: #f0f9ff;
+            border-left: 4px solid var(--g4);
+        }
+        .notification-card.read {
+            opacity: 0.8;
+        }
+        .notification-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+        .notification-title {
+            font-weight: 600;
+            color: var(--g1);
+        }
+        .notification-time {
+            font-size: 0.7rem;
+            color: var(--muted);
+        }
+        .notification-message {
+            color: var(--text);
+            font-size: 0.85rem;
+        }
+        .notification-badge {
+            background: var(--g4);
+            color: white;
+            font-size: 0.65rem;
+            padding: 2px 8px;
+            border-radius: 10px;
+        }
+        
+        .modal {
+            display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5);
+            justify-content: center; align-items: center; z-index: 1000;
+        }
+        .modal-content {
+            background: white; border-radius: 16px; padding: 28px;
+            width: 90%; max-width: 500px; max-height: 80vh; overflow-y: auto;
+        }
+        .modal-header {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 20px;
+        }
+        .modal-header h2 { font-family: 'Cormorant Garamond', serif; color: var(--g1); }
+        .modal-close {
+            background: none; border: none; font-size: 24px; cursor: pointer;
+            color: var(--muted);
+        }
+        .field { margin-bottom: 16px; }
+        .field label { display: block; font-size: .75rem; font-weight: 500; color: var(--g2); margin-bottom: 6px; }
+        .field input, .field select, .field textarea {
+            width: 100%; padding: 10px 12px; border: 1.5px solid var(--border);
+            border-radius: 8px; font-family: inherit; font-size: .9rem;
+        }
+        .field input:focus, .field select:focus, .field textarea:focus {
+            outline: none; border-color: var(--g4);
+        }
+        .btn-submit {
+            width: 100%; padding: 12px; background: var(--g1); color: white;
+            border: none; border-radius: 8px; font-weight: 500; cursor: pointer;
+        }
+        .btn-submit:hover { background: var(--g2); }
+        
+        .toast {
+            position: fixed; bottom: 20px; right: 20px; background: var(--g1);
+            color: white; padding: 12px 20px; border-radius: 8px;
+            animation: slideIn 0.3s ease; z-index: 2000;
+        }
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        
+        .section-title {
+            font-size: .8rem; font-weight: 500; color: var(--muted);
+            text-transform: uppercase; margin: 24px 0 12px;
+        }
+        .empty-state {
+            text-align: center; padding: 60px; background: white;
+            border-radius: 12px; border: 1.5px dashed var(--border);
+        }
+        
+        .maintenance-schedule {
+            border-left: 4px solid var(--g4);
+        }
+        .maintenance-highlight {
+            background: #fff8e1;
+            border-left: 4px solid #ff9800;
+        }
+        
+        @media (max-width: 768px) {
+            .sidebar { display: none; }
+            .main { margin-left: 0; padding: 20px; }
+            .stats-row { grid-template-columns: repeat(2, 1fr); }
+        }
+    </style>
+</head>
+<body>
+    <div class="sidebar">
+        <div class="sidebar-logo">
+            <div class="sidebar-logo-icon">
+                <svg viewBox="0 0 20 20" fill="white" width="18" height="18"><path d="M10 2C6 2 3 5 3 9c0 5 7 9 7 9s7-4 7-9c0-4-3-7-7-7z"/></svg>
+            </div>
+            <span>PropCare</span>
+        </div>
+        <nav>
+            <div class="nav-item active" onclick="showTab('issues')">
+                <svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="3" width="16" height="14" rx="2"/><path d="M6 7h8M6 11h5"/></svg>
+                My Issues
+            </div>
+            <div class="nav-item" onclick="showTab('maintenance')">
+                <svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+                Maintenance
+            </div>
+            <div class="nav-item" onclick="showTab('notices')">
+                <svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 01-3.46 0"/></svg>
+                Notices
+            </div>
+        </nav>
+        <div class="sidebar-user">
+            <div class="user-avatar" id="userAvatar">T</div>
+            <div>
+                <p id="userName" class="sidebar-name"></p>
+                <p id="userEmail" class="sidebar-email"></p>
+            </div>
+        </div>
+        <button class="logout" onclick="logout()">Sign Out</button>
+    </div>
+    
+    <div class="main">
+        <div class="dash-header">
+            <div>
+                <h1 id="greeting"></h1>
+                <p id="apartmentInfo"></p>
+            </div>
+            <button class="report-btn" onclick="openReportModal()">+ Report Issue</button>
+        </div>
+        
+        <!-- Issues Tab -->
+        <div id="issuesTab">
+            <div class="stats-row">
+                <div class="stat-card"><p class="stat-label">Total Issues</p><p class="stat-value" id="statTotal">0</p></div>
+                <div class="stat-card urgent"><p class="stat-label">Urgent</p><p class="stat-value" id="statUrgent">0</p></div>
+                <div class="stat-card emergency"><p class="stat-label">Emergency</p><p class="stat-value" id="statEmergency">0</p></div>
+                <div class="stat-card"><p class="stat-label">Resolved</p><p class="stat-value" id="statResolved">0</p></div>
+            </div>
+            
+            <p class="section-title">Your Reported Issues</p>
+            <div id="issuesContainer"></div>
+        </div>
+        
+        <!-- Maintenance Tab -->
+        <div id="maintenanceTab" style="display: none;">
+            <p class="section-title">Scheduled Maintenance</p>
+            <div id="maintenanceContainer"></div>
+        </div>
+        
+        <!-- Notices Tab -->
+        <div id="noticesTab" style="display: none;">
+            <div style="display: flex; justify-content: flex-end; margin-bottom: 16px;">
+                <button class="report-btn" style="padding: 8px 16px; font-size: 0.8rem;" onclick="markAllNotificationsRead()">Mark All as Read</button>
+            </div>
+            <div id="noticesContainer"></div>
+        </div>
+    </div>
+    
+    <!-- Report Modal -->
+    <div id="reportModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Report an Issue</h2>
+                <button class="modal-close" onclick="closeReportModal()">&times;</button>
+            </div>
+            <div class="field">
+                <label>Issue Title</label>
+                <input type="text" id="issueTitle" placeholder="e.g., Leaking faucet in kitchen">
+            </div>
+            <div class="field">
+                <label>Description</label>
+                <textarea id="issueDesc" rows="4" placeholder="Please provide detailed description..."></textarea>
+            </div>
+            <div class="field">
+                <label>Priority Level</label>
+                <select id="issueRisk">
+                    <option value="Less Urgent">Less Urgent</option>
+                    <option value="Urgent">Urgent</option>
+                    <option value="Emergency">Emergency</option>
+                </select>
+            </div>
+            <div class="field">
+                <label>Photo (Optional)</label>
+                <input type="file" id="issuePhoto" accept="image/*">
+            </div>
+            <button class="btn-submit" onclick="submitIssue()">Submit Report</button>
+        </div>
+    </div>
+    
+    <script>
+        let token = localStorage.getItem('token');
+        let socket = null;
+        let currentUser = null;
+        
+        document.addEventListener('DOMContentLoaded', async () => {
+            token = localStorage.getItem('token');
+            if (!token) {
+                window.location.href = '/';
+                return;
+            }
+            
+            await loadUserData();
+            setupWebSocket();
+            showTab('issues');
+        });
+        
+        function setupWebSocket() {
+            socket = io();
+            socket.on('connect', () => {
+                if (currentUser && currentUser.id) socket.emit('authenticate', currentUser.id);
+            });
+            
+            socket.on('notification', (notification) => {
+                showToast(notification.title + ': ' + notification.message);
+                if (document.getElementById('noticesTab').style.display !== 'none') {
+                    loadNotifications();
+                }
+                loadIssues();
+                loadMaintenance();
+            });
+        }
+        
+        function showTab(tab) {
+            document.getElementById('issuesTab').style.display = tab === 'issues' ? 'block' : 'none';
+            document.getElementById('maintenanceTab').style.display = tab === 'maintenance' ? 'block' : 'none';
+            document.getElementById('noticesTab').style.display = tab === 'notices' ? 'block' : 'none';
+            
+            document.querySelectorAll('.nav-item').forEach((item, idx) => {
+                item.classList.remove('active');
+                if (idx === 0 && tab === 'issues') item.classList.add('active');
+                if (idx === 1 && tab === 'maintenance') item.classList.add('active');
+                if (idx === 2 && tab === 'notices') item.classList.add('active');
+            });
+            
+            if (tab === 'issues') loadIssues();
+            if (tab === 'maintenance') loadMaintenance();
+            if (tab === 'notices') loadNotifications();
+        }
+        
+        async function loadUserData() {
+            try {
+                const response = await fetch('/api/verify', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (!response.ok) throw new Error('Unauthorized');
+                
+                currentUser = JSON.parse(atob(token.split('.')[1]));
+                
+                const userInfo = await response.json();
+                
+                document.getElementById('userName').innerText = userInfo.user.full_name;
+                document.getElementById('userEmail').innerText = userInfo.user.email;
+                document.getElementById('userAvatar').innerText = userInfo.user.full_name.charAt(0);
+                
+                // Get apartment info
+                const aptResponse = await fetch('/api/apartments', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const apartments = await aptResponse.json();
+                if (apartments && apartments.length > 0) {
+                    document.getElementById('apartmentInfo').innerHTML = `📍 ${apartments[0].estate_name} Unit ${apartments[0].unit_number}`;
+                }
+                
+                const hour = new Date().getHours();
+                const greet = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
+                document.getElementById('greeting').innerHTML = `${greet}, ${userInfo.user.full_name.split(' ')[0]} 👋`;
+            } catch (err) {
+                console.error(err);
+                logout();
+            }
+        }
+        
+        async function loadIssues() {
+            try {
+                const response = await fetch('/api/issues', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const issues = await response.json();
+                
+                const total = issues.length;
+                const urgent = issues.filter(i => i.risk_level === 'Urgent').length;
+                const emergency = issues.filter(i => i.risk_level === 'Emergency').length;
+                const resolved = issues.filter(i => i.status === 'Resolved').length;
+                
+                document.getElementById('statTotal').innerText = total;
+                document.getElementById('statUrgent').innerText = urgent;
+                document.getElementById('statEmergency').innerText = emergency;
+                document.getElementById('statResolved').innerText = resolved;
+                
+                const container = document.getElementById('issuesContainer');
+                if (issues.length === 0) {
+                    container.innerHTML = '<div class="empty-state"><h3>No issues reported</h3><p>Click "Report Issue" to submit a maintenance request.</p></div>';
+                    return;
+                }
+                
+                container.innerHTML = issues.map(issue => `
+                    <div class="issue-card">
+                        <div class="issue-header">
+                            <h3 class="issue-title">${escapeHtml(issue.title)}</h3>
+                            <div>
+                                <span class="risk-badge risk-${issue.risk_level.replace(' ', '-')}">${issue.risk_level}</span>
+                                <span class="status-badge status-${issue.status.replace(' ', '-')}">${issue.status}</span>
+                            </div>
+                        </div>
+                        <p class="issue-desc">${escapeHtml(issue.description)}</p>
+                        ${issue.photo_url ? `<img src="${issue.photo_url}" class="issue-photo" onclick="window.open(this.src)">` : ''}
+                        <div class="issue-meta">
+                            Reported: ${new Date(issue.reported_at).toLocaleString()}
+                            ${issue.technician_name ? `<br>Assigned to: ${issue.technician_name}` : ''}
+                            ${issue.resolved_at ? `<br>Resolved: ${new Date(issue.resolved_at).toLocaleString()}` : ''}
+                        </div>
+                    </div>
+                `).join('');
+            } catch (err) {
+                console.error(err);
+                showToast('Failed to load issues');
+            }
+        }
+        
+        async function loadMaintenance() {
+            try {
+                const response = await fetch('/api/maintenance/schedules', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const schedules = await response.json();
+                
+                const container = document.getElementById('maintenanceContainer');
+                if (!schedules || schedules.length === 0) {
+                    container.innerHTML = '<div class="empty-state"><h3>No maintenance scheduled</h3><p>Your landlord hasn\'t scheduled any maintenance yet.</p></div>';
+                    return;
+                }
+                
+                const now = new Date();
+                container.innerHTML = schedules.map(schedule => {
+                    const scheduleDate = new Date(schedule.scheduled_date);
+                    const isUpcoming = scheduleDate > now;
+                    const isToday = scheduleDate.toDateString() === now.toDateString();
+                    
+                    return `
+                        <div class="issue-card ${!isUpcoming ? 'maintenance-highlight' : 'maintenance-schedule'}">
+                            <div class="issue-header">
+                                <h3 class="issue-title">🔧 ${escapeHtml(schedule.title)}</h3>
+                                <span class="status-badge">${schedule.status || 'Scheduled'}</span>
+                            </div>
+                            <div class="issue-desc">
+                                <strong>📅 Date:</strong> ${scheduleDate.toLocaleString()}
+                                ${isToday ? ' <span style="color:#e65100;">(Today)</span>' : ''}
+                                ${!isUpcoming ? ' <span style="color:#e74c3c;">(Past Due)</span>' : ''}
+                            </div>
+                            ${schedule.description ? `<div class="issue-desc"><strong>📝 Description:</strong> ${escapeHtml(schedule.description)}</div>` : ''}
+                            ${schedule.estimated_duration ? `<div class="issue-desc"><strong>⏱️ Estimated Duration:</strong> ${escapeHtml(schedule.estimated_duration)}</div>` : ''}
+                            ${schedule.technician_name ? `<div class="issue-desc"><strong>👨‍🔧 Assigned Technician:</strong> ${escapeHtml(schedule.technician_name)}</div>` : ''}
+                            ${schedule.notes ? `<div class="issue-desc"><strong>📌 Notes:</strong> ${escapeHtml(schedule.notes)}</div>` : ''}
+                            <div class="issue-meta">
+                                ${schedule.status === 'in_progress' ? '🟡 Maintenance in progress' : '⏳ Scheduled maintenance'}
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            } catch (err) {
+                console.error('Error loading maintenance:', err);
+                showToast('Failed to load maintenance schedules');
+            }
+        }
+        
+        async function loadNotifications() {
+            try {
+                const response = await fetch('/api/notifications', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const notifications = await response.json();
+                
+                const container = document.getElementById('noticesContainer');
+                if (notifications.length === 0) {
+                    container.innerHTML = '<div class="empty-state"><h3>No notifications</h3><p>You\'ll see updates here.</p></div>';
+                    return;
+                }
+                
+                container.innerHTML = notifications.map(n => `
+                    <div class="notification-card ${n.is_read ? 'read' : 'unread'}" onclick="markNotificationRead(${n.id})">
+                        <div class="notification-header">
+                            <span class="notification-title">${escapeHtml(n.title)}</span>
+                            <div>
+                                ${!n.is_read ? '<span class="notification-badge">NEW</span>' : ''}
+                                <span class="notification-time">${new Date(n.created_at).toLocaleString()}</span>
+                            </div>
+                        </div>
+                        <div class="notification-message">${escapeHtml(n.message)}</div>
+                    </div>
+                `).join('');
+            } catch (err) {
+                console.error(err);
+            }
+        }
+        
+        async function markNotificationRead(notificationId) {
+            try {
+                await fetch(`/api/notifications/${notificationId}/read`, {
+                    method: 'PUT',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                loadNotifications();
+            } catch (err) {
+                console.error(err);
+            }
+        }
+        
+        async function markAllNotificationsRead() {
+            try {
+                await fetch('/api/notifications/read-all', {
+                    method: 'PUT',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                loadNotifications();
+                showToast('All notifications marked as read');
+            } catch (err) {
+                console.error(err);
+            }
+        }
+        
+        async function submitIssue() {
+            const title = document.getElementById('issueTitle').value.trim();
+            const description = document.getElementById('issueDesc').value.trim();
+            const risk_level = document.getElementById('issueRisk').value;
+            const photo = document.getElementById('issuePhoto').files[0];
+            
+            if (!title || !description) {
+                showToast('Please fill in all required fields');
+                return;
+            }
+            
+            const formData = new FormData();
+            formData.append('title', title);
+            formData.append('description', description);
+            formData.append('risk_level', risk_level);
+            if (photo) formData.append('photo', photo);
+            
+            try {
+                const response = await fetch('/api/issues', {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}` },
+                    body: formData
+                });
+                
+                if (response.ok) {
+                    showToast('Issue reported successfully!');
+                    closeReportModal();
+                    document.getElementById('issueTitle').value = '';
+                    document.getElementById('issueDesc').value = '';
+                    document.getElementById('issuePhoto').value = '';
+                    loadIssues();
+                } else {
+                    const error = await response.json();
+                    showToast(error.error || 'Failed to submit issue');
+                }
+            } catch (err) {
+                showToast('Network error');
+            }
+        }
+        
+        function openReportModal() {
+            document.getElementById('reportModal').style.display = 'flex';
+        }
+        
+        function closeReportModal() {
+            document.getElementById('reportModal').style.display = 'none';
+        }
+        
+        function showToast(message) {
+            const toast = document.createElement('div');
+            toast.className = 'toast';
+            toast.innerText = message;
+            document.body.appendChild(toast);
+            setTimeout(() => toast.remove(), 3000);
+        }
+        
+        function escapeHtml(str) {
+            if (!str) return '';
+            return str.replace(/[&<>]/g, function(m) {
+                if (m === '&') return '&amp;';
+                if (m === '<') return '&lt;';
+                if (m === '>') return '&gt;';
+                return m;
+            });
+        }
+        
+        function logout() {
+            localStorage.removeItem('token');
+            window.location.href = '/';
+        }
+    </script>
+</body>
+</html>

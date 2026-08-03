@@ -1,0 +1,1270 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PropCare — Property Management System</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        :root {
+            --g1: #0d3d2b;
+            --g2: #155c40;
+            --g3: #1e7a54;
+            --g4: #27a06e;
+            --g5: #4dbb89;
+            --g6: #a8dfc5;
+            --g7: #d4f0e4;
+            --g8: #edfaf3;
+            --text: #0d1f18;
+            --muted: #5a7a6b;
+            --border: #c8e8d9;
+            --success: #27ae60;
+            --error: #e74c3c;
+        }
+        
+        body {
+            font-family: 'DM Sans', sans-serif;
+            min-height: 100vh;
+            display: flex;
+            background: linear-gradient(135deg, var(--g1) 0%, var(--g3) 100%);
+        }
+        
+        .brand-side {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 48px 56px;
+            color: white;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .brand-side::before {
+            content: '';
+            position: absolute;
+            top: -100px;
+            right: -100px;
+            width: 400px;
+            height: 400px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 50%;
+        }
+        
+        .brand-side::after {
+            content: '';
+            position: absolute;
+            bottom: -80px;
+            left: -80px;
+            width: 300px;
+            height: 300px;
+            background: rgba(255,255,255,0.08);
+            border-radius: 50%;
+        }
+        
+        .brand-illustration {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: auto;
+            opacity: 0.14;
+            z-index: 1;
+            pointer-events: none;
+        }
+        
+        .logo {
+            position: relative;
+            z-index: 2;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .logo-icon {
+            width: 44px;
+            height: 44px;
+            background: var(--g4);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .logo-icon svg {
+            width: 24px;
+            height: 24px;
+            fill: white;
+        }
+        
+        .logo-text {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 1.8rem;
+            font-weight: 700;
+        }
+        
+        .tagline {
+            position: relative;
+            z-index: 2;
+            margin-top: 60px;
+        }
+        
+        .tagline h1 {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 3rem;
+            font-weight: 700;
+            margin-bottom: 20px;
+            line-height: 1.2;
+        }
+        
+        .tagline h1 span {
+            color: var(--g5);
+        }
+        
+        .tagline p {
+            font-size: 1rem;
+            font-weight: 300;
+            color: var(--g6);
+            max-width: 400px;
+            line-height: 1.6;
+        }
+        
+        .features {
+            position: relative;
+            z-index: 2;
+            margin-top: 60px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+        
+        .feature {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .feature-icon {
+            width: 28px;
+            height: 28px;
+            border: 1.5px solid var(--g5);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .feature-icon svg {
+            width: 14px;
+            height: 14px;
+            stroke: var(--g5);
+            stroke-width: 2;
+        }
+        
+        .feature-text {
+            font-size: 0.85rem;
+            color: var(--g6);
+        }
+        
+        .copyright {
+            position: relative;
+            z-index: 2;
+            font-size: 0.7rem;
+            color: rgba(255,255,255,0.3);
+        }
+        
+        .form-side {
+            width: 520px;
+            background: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 40px;
+            box-shadow: -4px 0 20px rgba(0,0,0,0.1);
+            overflow-y: auto;
+            max-height: 100vh;
+        }
+        
+        .form-container {
+            width: 100%;
+            max-width: 400px;
+        }
+        
+        .tabs {
+            display: flex;
+            gap: 8px;
+            background: var(--g8);
+            padding: 4px;
+            border-radius: 12px;
+            margin-bottom: 32px;
+        }
+        
+        .tab {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            background: transparent;
+            font-family: 'DM Sans', sans-serif;
+            font-size: 0.9rem;
+            font-weight: 500;
+            color: var(--muted);
+            cursor: pointer;
+            border-radius: 8px;
+            transition: all 0.2s;
+        }
+        
+        .tab.active {
+            background: var(--g1);
+            color: white;
+        }
+        
+        .form-title {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 1.8rem;
+            color: var(--g1);
+            margin-bottom: 8px;
+        }
+        
+        .form-subtitle {
+            font-size: 0.85rem;
+            color: var(--muted);
+            margin-bottom: 24px;
+        }
+        
+        .form-group {
+            margin-bottom: 16px;
+        }
+        
+        .form-group label {
+            display: block;
+            font-size: 0.7rem;
+            font-weight: 500;
+            color: var(--g2);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 6px;
+        }
+        
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 10px 14px;
+            border: 1.5px solid var(--border);
+            border-radius: 8px;
+            font-family: 'DM Sans', sans-serif;
+            font-size: 0.9rem;
+            transition: all 0.2s;
+        }
+        
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: var(--g4);
+        }
+        
+        .password-match-indicator {
+            font-size: 0.7rem;
+            margin-top: 4px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        
+        .match-success {
+            color: var(--success);
+        }
+        
+        .match-error {
+            color: var(--error);
+        }
+        
+        .error-message {
+            background: #fdecea;
+            color: #c0392b;
+            padding: 10px;
+            border-radius: 8px;
+            font-size: 0.8rem;
+            margin-bottom: 16px;
+            display: none;
+            border-left: 3px solid #c0392b;
+        }
+        
+        .success-message {
+            background: #e8f5e9;
+            color: #2e7d32;
+            padding: 10px;
+            border-radius: 8px;
+            font-size: 0.8rem;
+            margin-bottom: 16px;
+            display: none;
+            border-left: 3px solid #2e7d32;
+        }
+        
+        .info-message {
+            background: var(--g8);
+            color: var(--g2);
+            padding: 10px;
+            border-radius: 8px;
+            font-size: 0.8rem;
+            text-align: center;
+        }
+        
+        .btn-primary {
+            width: 100%;
+            padding: 12px;
+            background: var(--g1);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-family: 'DM Sans', sans-serif;
+            font-size: 0.95rem;
+            font-weight: 500;
+            cursor: pointer;
+            margin-top: 8px;
+            transition: background 0.2s;
+        }
+        
+        .btn-primary:hover {
+            background: var(--g2);
+        }
+        
+        .btn-primary:disabled {
+            background: var(--border);
+            cursor: not-allowed;
+        }
+        
+        .switch-link {
+            text-align: center;
+            margin-top: 16px;
+            font-size: 0.8rem;
+            color: var(--muted);
+        }
+        
+        .switch-link a {
+            color: var(--g3);
+            text-decoration: none;
+            cursor: pointer;
+        }
+        
+        .switch-link a:hover {
+            text-decoration: underline;
+        }
+        
+        .divider {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin: 20px 0;
+        }
+        
+        .divider-line {
+            flex: 1;
+            height: 1px;
+            background: var(--border);
+        }
+        
+        .divider-text {
+            font-size: 0.7rem;
+            color: var(--muted);
+        }
+        
+        .admin-link {
+            display: block;
+            text-align: center;
+            font-size: 0.75rem;
+            color: var(--muted);
+            text-decoration: none;
+            margin-top: 12px;
+        }
+        
+        .admin-link:hover {
+            color: var(--g3);
+        }
+        
+        .role-hint {
+            font-size: 0.7rem;
+            color: var(--muted);
+            margin-top: 4px;
+        }
+        
+        .spinner {
+            display: inline-block;
+            width: 14px;
+            height: 14px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 0.6s linear infinite;
+            margin-right: 8px;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.5);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        
+        .modal-content {
+            background: white;
+            border-radius: 16px;
+            padding: 28px;
+            width: 90%;
+            max-width: 450px;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .modal-header h2 {
+            font-family: 'Cormorant Garamond', serif;
+            color: var(--g1);
+        }
+        
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: var(--muted);
+        }
+        
+        .refresh-hint {
+            font-size: 0.65rem;
+            color: var(--muted);
+            margin-top: 4px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+        .refresh-hint .refresh-btn {
+            background: var(--g4);
+            border: none;
+            border-radius: 4px;
+            padding: 3px 12px;
+            cursor: pointer;
+            font-size: 0.6rem;
+            color: white;
+            transition: background 0.2s;
+        }
+        .refresh-hint .refresh-btn:hover {
+            background: var(--g3);
+        }
+        .refresh-hint .refresh-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: var(--g1);
+            color: white;
+            padding: 12px 20px;
+            border-radius: 8px;
+            animation: slideIn 0.3s ease;
+            z-index: 2000;
+            font-family: 'DM Sans', sans-serif;
+            font-size: 0.9rem;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        }
+        
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        
+        @media (max-width: 900px) {
+            .brand-side {
+                display: none;
+            }
+            .form-side {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="brand-side">
+        <svg class="brand-illustration" viewBox="0 0 600 160" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none">
+            <rect x="0" y="90" width="60" height="70" fill="white"/>
+            <rect x="70" y="60" width="50" height="100" fill="white"/>
+            <rect x="130" y="105" width="45" height="55" fill="white"/>
+            <rect x="185" y="40" width="55" height="120" fill="white"/>
+            <rect x="250" y="80" width="40" height="80" fill="white"/>
+            <rect x="300" y="20" width="60" height="140" fill="white"/>
+            <rect x="370" y="70" width="48" height="90" fill="white"/>
+            <rect x="428" y="100" width="42" height="60" fill="white"/>
+            <rect x="480" y="50" width="55" height="110" fill="white"/>
+            <rect x="545" y="85" width="55" height="75" fill="white"/>
+            <rect x="200" y="10" width="24" height="20" fill="white"/>
+            <rect x="315" y="4" width="20" height="18" fill="white"/>
+        </svg>
+        <div class="logo">
+            <div class="logo-icon">
+                <svg viewBox="0 0 20 20">
+                    <path d="M10 2C6 2 3 5 3 9c0 5 7 9 7 9s7-4 7-9c0-4-3-7-7-7z"/>
+                </svg>
+            </div>
+            <span class="logo-text">PropCare</span>
+        </div>
+        
+        <div class="tagline">
+            <h1>Smart property<br><span>management made simple</span></h1>
+            <p>Connect tenants, landlords, and technicians in one seamless platform for faster issue resolution.</p>
+        </div>
+        
+        <div class="features">
+            <div class="feature">
+                <div class="feature-icon">
+                    <svg viewBox="0 0 12 12">
+                        <polyline points="2,6 5,9 10,3"/>
+                    </svg>
+                </div>
+                <span class="feature-text">Real-time issue tracking</span>
+            </div>
+            <div class="feature">
+                <div class="feature-icon">
+                    <svg viewBox="0 0 12 12">
+                        <polyline points="2,6 5,9 10,3"/>
+                    </svg>
+                </div>
+                <span class="feature-text">Emergency priority system</span>
+            </div>
+            <div class="feature">
+                <div class="feature-icon">
+                    <svg viewBox="0 0 12 12">
+                        <polyline points="2,6 5,9 10,3"/>
+                    </svg>
+                </div>
+                <span class="feature-text">Instant notifications</span>
+            </div>
+        </div>
+        
+        <div class="copyright">© 2026 PropCare System</div>
+    </div>
+    
+    <div class="form-side">
+        <div class="form-container">
+            <div class="tabs">
+                <button class="tab active" onclick="showLogin()">Sign In</button>
+                <button class="tab" onclick="showTenantRegister()">Register</button>
+            </div>
+            
+            <!-- Login Form -->
+            <div id="loginForm">
+                <h2 class="form-title">Welcome back</h2>
+                <p class="form-subtitle">Sign in to your account</p>
+                <div id="loginError" class="error-message"></div>
+                <div class="form-group">
+                    <label>Email Address</label>
+                    <input type="email" id="loginEmail" placeholder="you@example.com">
+                </div>
+                <div class="form-group">
+                    <label>Password</label>
+                    <input type="password" id="loginPassword" placeholder="Enter your password">
+                </div>
+                <div class="form-group">
+                    <label>Account Type</label>
+                    <select id="loginRole">
+                        <option value="tenant">Tenant</option>
+                        <option value="landlord">Landlord</option>
+                        <option value="technician">Technician</option>
+                    </select>
+                </div>
+                <button class="btn-primary" onclick="login()">Sign In</button>
+                
+                <div class="switch-link">
+                    <a onclick="openResetModal()" style="cursor:pointer;">Forgot Password?</a>
+                </div>
+                
+                <div class="divider">
+                    <div class="divider-line"></div>
+                    <span class="divider-text">Admin Access</span>
+                    <div class="divider-line"></div>
+                </div>
+                
+                <a href="#" class="admin-link" onclick="showAdminLogin()">Access Admin Portal →</a>
+            </div>
+            
+            <!-- Tenant Registration Form (with approval) -->
+            <div id="tenantRegisterForm" style="display:none;">
+                <h2 class="form-title">Tenant Registration</h2>
+                <p class="form-subtitle">Register to your apartment (requires landlord approval)</p>
+                <div id="tenantRegError" class="error-message"></div>
+                <div id="tenantRegSuccess" class="success-message"></div>
+                
+                <div class="form-group">
+                    <label>Full Name *</label>
+                    <input type="text" id="tenantName" placeholder="John Doe">
+                </div>
+                <div class="form-group">
+                    <label>Email *</label>
+                    <input type="email" id="tenantEmail" placeholder="you@example.com">
+                </div>
+                <div class="form-group">
+                    <label>Phone</label>
+                    <input type="tel" id="tenantPhone" placeholder="+254 700 000 000">
+                </div>
+                
+                <div class="form-group">
+                    <label>Select Estate *</label>
+                    <select id="tenantEstate" onchange="loadUnitsForEstate()">
+                        <option value="">-- Select Estate --</option>
+                    </select>
+                    <div class="refresh-hint">
+                        <span>🔄 Not seeing your estate? </span>
+                        <button class="refresh-btn" onclick="refreshAvailableApartments()">↻ Refresh</button>
+                    </div>
+                    <div class="role-hint" id="estateHint">Choose your estate from the list</div>
+                </div>
+                
+                <div class="form-group">
+                    <label>Select Unit Number *</label>
+                    <select id="tenantUnit" disabled>
+                        <option value="">-- First select estate --</option>
+                    </select>
+                    <div class="role-hint" id="unitHint">Available units will appear here</div>
+                </div>
+                
+                <div class="form-group">
+                    <label>Password *</label>
+                    <input type="password" id="tenantPassword" placeholder="Min 6 characters" oninput="checkTenantPasswordMatch()">
+                </div>
+                
+                <div class="form-group">
+                    <label>Confirm Password *</label>
+                    <input type="password" id="tenantConfirmPassword" placeholder="Re-enter password" oninput="checkTenantPasswordMatch()">
+                    <div id="tenantPwMatch" class="password-match-indicator"></div>
+                </div>
+                
+                <div class="info-message" style="margin-bottom: 16px;">
+                    ℹ️ Your registration will be sent to the landlord for approval. 
+                    You will receive a notification once approved. The unit will be held for 24 hours.
+                </div>
+                
+                <button class="btn-primary" id="tenantRegisterBtn" onclick="registerTenantRequest()">Submit Registration Request</button>
+                <div class="switch-link">Already have an account? <a onclick="showLogin()">Sign in →</a></div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Password Reset Modal -->
+    <div id="resetPasswordModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Reset Password</h2>
+                <button class="modal-close" onclick="closeResetModal()">&times;</button>
+            </div>
+            
+            <div id="resetStep1">
+                <p class="form-subtitle">Enter your email and role to receive a reset code</p>
+                <div class="form-group">
+                    <label>Email Address</label>
+                    <input type="email" id="resetEmail" placeholder="you@example.com">
+                </div>
+                <div class="form-group">
+                    <label>Account Type</label>
+                    <select id="resetRole">
+                        <option value="tenant">Tenant</option>
+                        <option value="landlord">Landlord</option>
+                        <option value="technician">Technician</option>
+                    </select>
+                </div>
+                <button class="btn-primary" onclick="requestResetCode()">Send Reset Code</button>
+            </div>
+            
+            <div id="resetStep2" style="display:none;">
+                <p class="form-subtitle">Enter the 6-digit code sent to your email</p>
+                <div class="form-group">
+                    <label>Reset Code</label>
+                    <input type="text" id="resetCode" placeholder="Enter 6-digit code" maxlength="6">
+                </div>
+                <button class="btn-primary" onclick="verifyResetCode()">Verify Code</button>
+            </div>
+            
+            <div id="resetStep3" style="display:none;">
+                <p class="form-subtitle">Create a new password</p>
+                <div class="form-group">
+                    <label>New Password</label>
+                    <input type="password" id="newPassword" placeholder="Min 6 characters">
+                </div>
+                <div class="form-group">
+                    <label>Confirm Password</label>
+                    <input type="password" id="confirmNewPassword" placeholder="Re-enter password">
+                    <div id="resetPwMatch" class="password-match-indicator"></div>
+                </div>
+                <button class="btn-primary" onclick="resetPassword()">Reset Password</button>
+            </div>
+            
+            <div id="resetMessage" class="info-message" style="display:none; margin-top:16px;"></div>
+        </div>
+    </div>
+    
+    <script>
+        const API_URL = '';
+        let availableApartments = [];
+        let isRefreshing = false;
+        
+        function showLogin() {
+            document.getElementById('loginForm').style.display = 'block';
+            document.getElementById('tenantRegisterForm').style.display = 'none';
+            document.querySelectorAll('.tab')[0].classList.add('active');
+            document.querySelectorAll('.tab')[1].classList.remove('active');
+            document.getElementById('loginError').style.display = 'none';
+        }
+        
+        async function showTenantRegister() {
+            document.getElementById('loginForm').style.display = 'none';
+            document.getElementById('tenantRegisterForm').style.display = 'block';
+            document.querySelectorAll('.tab')[0].classList.remove('active');
+            document.querySelectorAll('.tab')[1].classList.add('active');
+            
+            document.getElementById('tenantRegError').style.display = 'none';
+            document.getElementById('tenantRegSuccess').style.display = 'none';
+            
+            // Force refresh when switching to register tab
+            await loadAvailableApartments(true);
+        }
+        
+        function showAdminLogin() {
+            window.location.href = '/admin-login.html';
+        }
+        
+        // Refresh available apartments with force option
+        async function refreshAvailableApartments() {
+            if (isRefreshing) return;
+            
+            const refreshBtn = document.querySelector('.refresh-btn');
+            const originalText = refreshBtn.textContent;
+            refreshBtn.textContent = '⏳ Loading...';
+            refreshBtn.disabled = true;
+            isRefreshing = true;
+            
+            try {
+                await loadAvailableApartments(true);
+                showToast('✅ Available apartments refreshed!');
+            } catch (err) {
+                showToast('❌ Failed to refresh. Please try again.');
+                console.error('Refresh error:', err);
+            } finally {
+                refreshBtn.textContent = originalText;
+                refreshBtn.disabled = false;
+                isRefreshing = false;
+            }
+        }
+        
+        async function loadAvailableApartments(forceRefresh = false) {
+            try {
+                // Add cache-busting parameter to prevent caching
+                const cacheBuster = forceRefresh ? `?t=${Date.now()}` : '';
+                const response = await fetch(`/api/available-apartments${cacheBuster}`, {
+                    headers: {
+                        'Cache-Control': 'no-cache, no-store, must-revalidate',
+                        'Pragma': 'no-cache',
+                        'Expires': '0'
+                    }
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Failed to fetch apartments');
+                }
+                
+                availableApartments = await response.json();
+                
+                const estates = [...new Set(availableApartments.map(a => a.estate_name))];
+                
+                const estateSelect = document.getElementById('tenantEstate');
+                const currentSelection = estateSelect.value;
+                estateSelect.innerHTML = '<option value="">-- Select Estate --</option>';
+                
+                estates.forEach(estate => {
+                    estateSelect.innerHTML += `<option value="${escapeHtml(estate)}">${escapeHtml(estate)}</option>`;
+                });
+                
+                const estateHint = document.getElementById('estateHint');
+                if (estates.length === 0) {
+                    estateSelect.innerHTML = '<option value="">-- No apartments available --</option>';
+                    estateHint.innerHTML = '⚠️ No available apartments. All units may be occupied or pending approval.';
+                    document.getElementById('unitHint').innerHTML = 'No units available';
+                    document.getElementById('tenantUnit').innerHTML = '<option value="">-- No units available --</option>';
+                    document.getElementById('tenantUnit').disabled = true;
+                } else {
+                    estateHint.innerHTML = `✅ ${estates.length} estate(s) with available units`;
+                    document.getElementById('unitHint').innerHTML = 'Select an estate first, then choose your unit number';
+                }
+                
+                // If previously selected estate still exists, keep it selected
+                if (currentSelection && estates.includes(currentSelection)) {
+                    estateSelect.value = currentSelection;
+                    loadUnitsForEstate();
+                } else {
+                    // Reset unit dropdown
+                    document.getElementById('tenantUnit').innerHTML = '<option value="">-- First select estate --</option>';
+                    document.getElementById('tenantUnit').disabled = true;
+                }
+                
+                console.log(`📋 Loaded ${availableApartments.length} available apartments`);
+            } catch (err) {
+                console.error('Error loading apartments:', err);
+                document.getElementById('tenantEstate').innerHTML = '<option value="">-- Error loading estates --</option>';
+                showToast('Failed to load available apartments. Please refresh.');
+            }
+        }
+        
+        function loadUnitsForEstate() {
+            const selectedEstate = document.getElementById('tenantEstate').value;
+            const unitSelect = document.getElementById('tenantUnit');
+            const unitHint = document.getElementById('unitHint');
+            
+            if (!selectedEstate) {
+                unitSelect.innerHTML = '<option value="">-- First select estate --</option>';
+                unitSelect.disabled = true;
+                unitHint.innerHTML = 'Available units will appear here';
+                return;
+            }
+            
+            const units = availableApartments.filter(a => a.estate_name === selectedEstate);
+            
+            if (units.length === 0) {
+                unitSelect.innerHTML = '<option value="">-- No units available --</option>';
+                unitHint.innerHTML = '⚠️ No available units in this estate. Try refreshing the list.';
+                unitSelect.disabled = true;
+            } else {
+                unitSelect.innerHTML = '<option value="">-- Select Unit --</option>';
+                units.forEach(unit => {
+                    unitSelect.innerHTML += `<option value="${escapeHtml(unit.unit_number)}">${escapeHtml(unit.unit_number)}</option>`;
+                });
+                unitSelect.disabled = false;
+                unitHint.innerHTML = `✅ ${units.length} available unit(s) in ${escapeHtml(selectedEstate)}`;
+            }
+        }
+        
+        function checkTenantPasswordMatch() {
+            const password = document.getElementById('tenantPassword').value;
+            const confirm = document.getElementById('tenantConfirmPassword').value;
+            const msgDiv = document.getElementById('tenantPwMatch');
+            const btn = document.getElementById('tenantRegisterBtn');
+            
+            if (confirm.length === 0) {
+                msgDiv.innerHTML = '<span>⚪</span> <span>Confirm your password</span>';
+                msgDiv.className = 'password-match-indicator';
+                btn.disabled = false;
+                return;
+            }
+            if (password === confirm && password.length >= 6) {
+                msgDiv.innerHTML = '<span>✅</span> <span>Passwords match!</span>';
+                msgDiv.className = 'password-match-indicator match-success';
+                btn.disabled = false;
+            } else if (password === confirm && password.length < 6) {
+                msgDiv.innerHTML = '<span>⚠️</span> <span>Password must be at least 6 characters</span>';
+                msgDiv.className = 'password-match-indicator match-error';
+                btn.disabled = true;
+            } else {
+                msgDiv.innerHTML = '<span>❌</span> <span>Passwords do not match</span>';
+                msgDiv.className = 'password-match-indicator match-error';
+                btn.disabled = true;
+            }
+        }
+        
+        async function registerTenantRequest() {
+            const name = document.getElementById('tenantName').value.trim();
+            const email = document.getElementById('tenantEmail').value.trim();
+            const phone = document.getElementById('tenantPhone').value.trim();
+            const estate = document.getElementById('tenantEstate').value;
+            const unit = document.getElementById('tenantUnit').value;
+            const password = document.getElementById('tenantPassword').value;
+            const confirmPassword = document.getElementById('tenantConfirmPassword').value;
+            const errorDiv = document.getElementById('tenantRegError');
+            const successDiv = document.getElementById('tenantRegSuccess');
+            const btn = document.getElementById('tenantRegisterBtn');
+            
+            errorDiv.style.display = 'none';
+            successDiv.style.display = 'none';
+            
+            if (!name || !email || !estate || !unit || !password) {
+                errorDiv.textContent = 'Please fill all required fields';
+                errorDiv.style.display = 'block';
+                return;
+            }
+            
+            if (password !== confirmPassword) {
+                errorDiv.textContent = 'Passwords do not match';
+                errorDiv.style.display = 'block';
+                return;
+            }
+            
+            if (password.length < 6) {
+                errorDiv.textContent = 'Password must be at least 6 characters';
+                errorDiv.style.display = 'block';
+                return;
+            }
+            
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(email)) {
+                errorDiv.textContent = 'Please enter a valid email address';
+                errorDiv.style.display = 'block';
+                return;
+            }
+            
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<span class="spinner"></span> Submitting...';
+            btn.disabled = true;
+            
+            try {
+                const response = await fetch('/api/register/tenant-request', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        full_name: name, 
+                        email, 
+                        phone, 
+                        password, 
+                        estate_name: estate, 
+                        unit_number: unit 
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    successDiv.innerHTML = '✅ Registration request submitted! Your landlord will review your application within 24 hours. You will be notified once approved.';
+                    successDiv.style.display = 'block';
+                    
+                    // Clear form
+                    document.getElementById('tenantName').value = '';
+                    document.getElementById('tenantEmail').value = '';
+                    document.getElementById('tenantPhone').value = '';
+                    document.getElementById('tenantPassword').value = '';
+                    document.getElementById('tenantConfirmPassword').value = '';
+                    document.getElementById('tenantEstate').value = '';
+                    document.getElementById('tenantUnit').innerHTML = '<option value="">-- First select estate --</option>';
+                    document.getElementById('tenantUnit').disabled = true;
+                    
+                    // Refresh the available apartments list to reflect any changes
+                    await loadAvailableApartments(true);
+                    
+                    setTimeout(() => {
+                        showLogin();
+                    }, 3000);
+                } else {
+                    errorDiv.textContent = data.error || 'Registration request failed. Please try again.';
+                    errorDiv.style.display = 'block';
+                }
+            } catch (err) {
+                console.error('Registration error:', err);
+                errorDiv.textContent = 'Network error. Please make sure the server is running.';
+                errorDiv.style.display = 'block';
+            } finally {
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            }
+        }
+        
+        async function login() {
+            const email = document.getElementById('loginEmail').value.trim();
+            const password = document.getElementById('loginPassword').value;
+            const role = document.getElementById('loginRole').value;
+            const errorDiv = document.getElementById('loginError');
+            const btn = document.querySelector('#loginForm .btn-primary');
+            
+            errorDiv.style.display = 'none';
+            
+            if (!email || !password) {
+                errorDiv.textContent = 'Please enter email and password';
+                errorDiv.style.display = 'block';
+                return;
+            }
+            
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<span class="spinner"></span> Signing in...';
+            btn.disabled = true;
+            
+            try {
+                const response = await fetch('/api/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password, role })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    localStorage.setItem('token', data.token);
+                    localStorage.setItem('user', JSON.stringify(data.user));
+                    
+                    if (role === 'tenant') window.location.href = '/tenant-dashboard.html';
+                    else if (role === 'landlord') window.location.href = '/landlord-dashboard.html';
+                    else if (role === 'technician') window.location.href = '/technician-dashboard.html';
+                } else {
+                    errorDiv.textContent = data.error || 'Login failed';
+                    errorDiv.style.display = 'block';
+                    document.getElementById('loginPassword').value = '';
+                }
+            } catch (err) {
+                errorDiv.textContent = 'Network error. Make sure server is running.';
+                errorDiv.style.display = 'block';
+            } finally {
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            }
+        }
+        
+        // ==================== PASSWORD RESET FUNCTIONS ====================
+        
+        let resetEmail = '';
+        let resetRole = '';
+        let verifiedCode = '';
+        
+        function openResetModal() {
+            document.getElementById('resetPasswordModal').style.display = 'flex';
+            document.getElementById('resetStep1').style.display = 'block';
+            document.getElementById('resetStep2').style.display = 'none';
+            document.getElementById('resetStep3').style.display = 'none';
+            document.getElementById('resetMessage').style.display = 'none';
+        }
+        
+        function closeResetModal() {
+            document.getElementById('resetPasswordModal').style.display = 'none';
+            document.getElementById('resetEmail').value = '';
+            document.getElementById('resetCode').value = '';
+            document.getElementById('newPassword').value = '';
+            document.getElementById('confirmNewPassword').value = '';
+            resetEmail = '';
+            resetRole = '';
+            verifiedCode = '';
+        }
+        
+        async function requestResetCode() {
+            const email = document.getElementById('resetEmail').value.trim();
+            const role = document.getElementById('resetRole').value;
+            const messageDiv = document.getElementById('resetMessage');
+            
+            if (!email) {
+                messageDiv.style.display = 'block';
+                messageDiv.style.background = '#fdecea';
+                messageDiv.style.color = '#c0392b';
+                messageDiv.innerHTML = 'Please enter your email address';
+                return;
+            }
+            
+            messageDiv.style.display = 'block';
+            messageDiv.innerHTML = 'Sending reset code...';
+            messageDiv.style.background = 'var(--g8)';
+            messageDiv.style.color = 'var(--g2)';
+            
+            try {
+                const response = await fetch('/api/forgot-password', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, role })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    resetEmail = email;
+                    resetRole = role;
+                    messageDiv.innerHTML = data.message;
+                    
+                    document.getElementById('resetStep1').style.display = 'none';
+                    document.getElementById('resetStep2').style.display = 'block';
+                } else {
+                    messageDiv.style.background = '#fdecea';
+                    messageDiv.style.color = '#c0392b';
+                    messageDiv.innerHTML = data.error || 'Failed to send reset code';
+                }
+            } catch (err) {
+                messageDiv.style.background = '#fdecea';
+                messageDiv.style.color = '#c0392b';
+                messageDiv.innerHTML = 'Network error. Please try again.';
+            }
+        }
+        
+        async function verifyResetCode() {
+            const resetCode = document.getElementById('resetCode').value.trim();
+            const messageDiv = document.getElementById('resetMessage');
+            
+            if (!resetCode || resetCode.length !== 6) {
+                messageDiv.style.display = 'block';
+                messageDiv.style.background = '#fdecea';
+                messageDiv.style.color = '#c0392b';
+                messageDiv.innerHTML = 'Please enter a valid 6-digit code';
+                return;
+            }
+            
+            messageDiv.style.display = 'block';
+            messageDiv.innerHTML = 'Verifying code...';
+            messageDiv.style.background = 'var(--g8)';
+            messageDiv.style.color = 'var(--g2)';
+            
+            try {
+                const response = await fetch('/api/verify-reset-code', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email: resetEmail, role: resetRole, resetCode })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    verifiedCode = resetCode;
+                    document.getElementById('resetStep2').style.display = 'none';
+                    document.getElementById('resetStep3').style.display = 'block';
+                    messageDiv.style.display = 'none';
+                    
+                    document.getElementById('newPassword').addEventListener('input', checkResetPasswords);
+                    document.getElementById('confirmNewPassword').addEventListener('input', checkResetPasswords);
+                } else {
+                    messageDiv.style.background = '#fdecea';
+                    messageDiv.style.color = '#c0392b';
+                    messageDiv.innerHTML = data.error || 'Invalid or expired code';
+                }
+            } catch (err) {
+                messageDiv.style.background = '#fdecea';
+                messageDiv.style.color = '#c0392b';
+                messageDiv.innerHTML = 'Network error. Please try again.';
+            }
+        }
+        
+        function checkResetPasswords() {
+            const password = document.getElementById('newPassword').value;
+            const confirm = document.getElementById('confirmNewPassword').value;
+            const msgDiv = document.getElementById('resetPwMatch');
+            const btn = document.querySelector('#resetStep3 .btn-primary');
+            
+            if (confirm.length === 0) {
+                msgDiv.innerHTML = '';
+                btn.disabled = false;
+                return;
+            }
+            if (password === confirm && password.length >= 6) {
+                msgDiv.innerHTML = '<span style="color:#27ae60;">✅ Passwords match!</span>';
+                btn.disabled = false;
+            } else if (password === confirm && password.length < 6) {
+                msgDiv.innerHTML = '<span style="color:#e74c3c;">⚠️ Password must be at least 6 characters</span>';
+                btn.disabled = true;
+            } else {
+                msgDiv.innerHTML = '<span style="color:#e74c3c;">❌ Passwords do not match</span>';
+                btn.disabled = true;
+            }
+        }
+        
+        async function resetPassword() {
+            const newPassword = document.getElementById('newPassword').value;
+            const confirmPassword = document.getElementById('confirmNewPassword').value;
+            const messageDiv = document.getElementById('resetMessage');
+            
+            if (newPassword !== confirmPassword) {
+                messageDiv.style.display = 'block';
+                messageDiv.style.background = '#fdecea';
+                messageDiv.style.color = '#c0392b';
+                messageDiv.innerHTML = 'Passwords do not match';
+                return;
+            }
+            
+            if (newPassword.length < 6) {
+                messageDiv.style.display = 'block';
+                messageDiv.style.background = '#fdecea';
+                messageDiv.style.color = '#c0392b';
+                messageDiv.innerHTML = 'Password must be at least 6 characters';
+                return;
+            }
+            
+            messageDiv.style.display = 'block';
+            messageDiv.innerHTML = 'Resetting password...';
+            messageDiv.style.background = 'var(--g8)';
+            messageDiv.style.color = 'var(--g2)';
+            
+            try {
+                const response = await fetch('/api/reset-password', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        email: resetEmail, 
+                        role: resetRole, 
+                        resetCode: verifiedCode, 
+                        newPassword 
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    messageDiv.style.background = '#e8f5e9';
+                    messageDiv.style.color = '#2e7d32';
+                    messageDiv.innerHTML = data.message;
+                    
+                    setTimeout(() => {
+                        closeResetModal();
+                        document.getElementById('loginEmail').value = resetEmail;
+                        document.getElementById('loginRole').value = resetRole;
+                    }, 2000);
+                } else {
+                    messageDiv.style.background = '#fdecea';
+                    messageDiv.style.color = '#c0392b';
+                    messageDiv.innerHTML = data.error || 'Password reset failed';
+                }
+            } catch (err) {
+                messageDiv.style.background = '#fdecea';
+                messageDiv.style.color = '#c0392b';
+                messageDiv.innerHTML = 'Network error. Please try again.';
+            }
+        }
+        
+        // Toast notification
+        function showToast(message) {
+            const toast = document.createElement('div');
+            toast.className = 'toast';
+            toast.textContent = message;
+            document.body.appendChild(toast);
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transition = 'opacity 0.3s ease';
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+        
+        function escapeHtml(str) {
+            if (!str) return '';
+            return str.replace(/[&<>]/g, function(m) {
+                if (m === '&') return '&amp;';
+                if (m === '<') return '&lt;';
+                if (m === '>') return '&gt;';
+                return m;
+            });
+        }
+        
+        document.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                if (document.getElementById('loginForm').style.display !== 'none') {
+                    login();
+                } else if (document.getElementById('tenantRegisterForm').style.display !== 'none') {
+                    registerTenantRequest();
+                }
+            }
+        });
+    </script>
+</body>
+</html>

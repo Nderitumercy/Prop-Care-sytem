@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PropCare — Admin Login</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'DM Sans', sans-serif;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #0d3d2b 0%, #1e7a54 100%);
+        }
+        
+        .admin-card {
+            background: white;
+            border-radius: 20px;
+            padding: 48px 44px;
+            width: 100%;
+            max-width: 420px;
+            text-align: center;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+        }
+        
+        .admin-icon {
+            width: 64px;
+            height: 64px;
+            background: #0d3d2b;
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 20px;
+        }
+        
+        .admin-icon svg {
+            width: 32px;
+            height: 32px;
+            fill: white;
+        }
+        
+        h2 {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 2rem;
+            color: #0d3d2b;
+            margin-bottom: 8px;
+        }
+        
+        .sub {
+            color: #5a7a6b;
+            font-size: 0.85rem;
+            margin-bottom: 32px;
+        }
+        
+        .warning {
+            background: #fff3e0;
+            color: #e65100;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.7rem;
+            display: inline-block;
+            margin-bottom: 24px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+            text-align: left;
+        }
+        
+        .form-group label {
+            display: block;
+            font-size: 0.7rem;
+            font-weight: 500;
+            color: #155c40;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 6px;
+        }
+        
+        .form-group input {
+            width: 100%;
+            padding: 12px 14px;
+            border: 1.5px solid #c8e8d9;
+            border-radius: 10px;
+            font-size: 0.9rem;
+            font-family: 'DM Sans', sans-serif;
+            transition: all 0.2s;
+        }
+        
+        .form-group input:focus {
+            outline: none;
+            border-color: #27a06e;
+        }
+        
+        .btn-admin {
+            width: 100%;
+            padding: 12px;
+            background: #0d3d2b;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-family: 'DM Sans', sans-serif;
+            font-size: 0.95rem;
+            font-weight: 500;
+            cursor: pointer;
+            margin-top: 8px;
+            transition: background 0.2s;
+        }
+        
+        .btn-admin:hover {
+            background: #155c40;
+        }
+        
+        .btn-admin:disabled {
+            background: #aaa;
+            cursor: not-allowed;
+        }
+        
+        .error-message {
+            background: #fdecea;
+            color: #c0392b;
+            padding: 10px;
+            border-radius: 8px;
+            font-size: 0.8rem;
+            margin-bottom: 16px;
+            display: none;
+            text-align: left;
+        }
+        
+        .back-link {
+            display: block;
+            margin-top: 20px;
+            color: #5a7a6b;
+            text-decoration: none;
+            font-size: 0.8rem;
+        }
+        
+        .back-link:hover {
+            color: #1e7a54;
+        }
+        
+        .spinner {
+            display: inline-block;
+            width: 14px;
+            height: 14px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 0.6s linear infinite;
+            margin-right: 8px;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="admin-card">
+        <div class="admin-icon">
+            <svg viewBox="0 0 20 20">
+                <path d="M10 2a4 4 0 100 8 4 4 0 000-8zM4 14c0-2.76 2.69-5 6-5s6 2.24 6 5v1H4v-1z"/>
+            </svg>
+        </div>
+        
+        <h2>Admin Portal</h2>
+        <p class="sub">System Administrator Access Only</p>
+        <div class="warning">🔒 Restricted Area - Authorized Personnel Only</div>
+        
+        <div id="errorMsg" class="error-message"></div>
+        
+        <div class="form-group">
+            <label>Admin Email</label>
+            <input type="email" id="adminEmail" placeholder="admin@propcare.com" value="admin@propcare.com">
+        </div>
+        
+        <div class="form-group">
+            <label>Password</label>
+            <input type="password" id="adminPassword" placeholder="Enter your password">
+        </div>
+        
+        <button class="btn-admin" onclick="adminLogin()">Access Dashboard</button>
+        
+        <a class="back-link" href="/">← Back to Main Portal</a>
+    </div>
+    
+    <script>
+        async function adminLogin() {
+            const email = document.getElementById('adminEmail').value.trim();
+            const password = document.getElementById('adminPassword').value;
+            const errorDiv = document.getElementById('errorMsg');
+            const loginBtn = document.querySelector('.btn-admin');
+            
+            errorDiv.style.display = 'none';
+            
+            if (!email || !password) {
+                showError('Please enter email and password');
+                return;
+            }
+            
+            // Show loading state
+            const originalText = loginBtn.innerHTML;
+            loginBtn.innerHTML = '<span class="spinner"></span> Verifying...';
+            loginBtn.disabled = true;
+            
+            try {
+                const response = await fetch('/api/login', {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ 
+                        email: email, 
+                        password: password, 
+                        role: 'admin' 
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    // Store token and user info
+                    localStorage.setItem('token', data.token);
+                    localStorage.setItem('user', JSON.stringify(data.user));
+                    
+                    // Redirect to admin dashboard
+                    window.location.href = '/admin-dashboard.html';
+                } else {
+                    showError(data.error || 'Invalid admin credentials');
+                    document.getElementById('adminPassword').value = '';
+                }
+            } catch (err) {
+                console.error('Login error:', err);
+                showError('Network error. Make sure the server is running on port 3000');
+            } finally {
+                loginBtn.innerHTML = originalText;
+                loginBtn.disabled = false;
+            }
+        }
+        
+        function showError(message) {
+            const errorDiv = document.getElementById('errorMsg');
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+            
+            // Auto-hide after 5 seconds
+            setTimeout(() => {
+                errorDiv.style.display = 'none';
+            }, 5000);
+        }
+        
+        // Enter key support
+        document.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                adminLogin();
+            }
+        });
+    </script>
+</body>
+</html>

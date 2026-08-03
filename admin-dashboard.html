@@ -1,0 +1,842 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PropCare — Admin Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root {
+            --g1: #0d3d2b; --g2: #155c40; --g3: #1e7a54;
+            --g4: #27a06e; --g5: #4dbb89; --g6: #a8dfc5;
+            --g7: #d4f0e4; --g8: #edfaf3;
+            --text: #0d1f18; --muted: #5a7a6b; --border: #c8e8d9;
+            --danger: #e74c3c;
+            --danger-bg: #fdecea;
+            --success: #27ae60;
+            --success-bg: #e8f5e9;
+        }
+        body { font-family: 'DM Sans', sans-serif; background: #f0f7f3; }
+        
+        .sidebar {
+            width: 260px; height: 100vh; position: fixed; top: 0; left: 0;
+            background: var(--g1); padding: 28px 20px; display: flex;
+            flex-direction: column;
+        }
+        .sidebar-logo { display: flex; align-items: center; gap: 10px; margin-bottom: 36px; }
+        .sidebar-logo-icon {
+            width: 34px; height: 34px; background: var(--g4);
+            border-radius: 9px; display: flex; align-items: center; justify-content: center;
+        }
+        .sidebar-logo span { font-family: 'Cormorant Garamond', serif; font-size: 1.35rem; font-weight: 700; color: white; }
+        .nav-item {
+            display: flex; align-items: center; gap: 10px; padding: 10px 12px;
+            border-radius: 8px; color: var(--g6); cursor: pointer; margin-bottom: 4px;
+        }
+        .nav-item:hover, .nav-item.active { background: rgba(255,255,255,.12); color: white; }
+        .sidebar-user {
+            display: flex; align-items: center; gap: 10px; padding: 14px 0;
+            border-top: 1px solid rgba(255,255,255,.1);
+            border-bottom: 1px solid rgba(255,255,255,.1); margin: auto 0 14px 0;
+        }
+        .user-avatar {
+            width: 36px; height: 36px; border-radius: 50%; background: var(--g3);
+            display: flex; align-items: center; justify-content: center; color: white;
+        }
+        .sidebar-name { font-size: .88rem; font-weight: 500; color: white; }
+        .sidebar-email { font-size: .75rem; color: var(--g6); }
+        .logout {
+            display: flex; align-items: center; justify-content: center; gap: 8px;
+            padding: 10px; background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.18);
+            border-radius: 8px; color: var(--g6); cursor: pointer;
+        }
+        .logout:hover { background: rgba(255,255,255,.16); color: white; }
+        
+        .main { margin-left: 260px; padding: 32px 40px; }
+        .dash-header { margin-bottom: 32px; }
+        .dash-header h1 { font-family: 'Cormorant Garamond', serif; font-size: 2.2rem; color: var(--g1); margin-bottom: 4px; }
+        .dash-header p { font-size: .92rem; color: var(--muted); font-weight: 300; }
+        
+        .stats-row {
+            display: grid; grid-template-columns: repeat(4, 1fr);
+            gap: 14px; margin-bottom: 32px;
+        }
+        .stat-card {
+            background: white; border-radius: 12px; padding: 20px 22px;
+            border: 1.5px solid var(--border);
+        }
+        .stat-label { font-size: .72rem; font-weight: 500; color: var(--muted); text-transform: uppercase; letter-spacing: .07em; margin-bottom: 8px; }
+        .stat-value { font-family: 'Cormorant Garamond', serif; font-size: 2.2rem; font-weight: 700; color: var(--g1); line-height: 1; }
+        
+        .btn-primary {
+            background: var(--g1); color: white; border: none; padding: 10px 20px;
+            border-radius: 8px; font-family: 'DM Sans', sans-serif; font-size: .85rem;
+            font-weight: 500; cursor: pointer; display: inline-flex; align-items: center;
+            gap: 8px; margin-bottom: 16px;
+        }
+        .btn-primary:hover { background: var(--g2); }
+        .btn-danger { 
+            background: var(--danger-bg); color: var(--danger); 
+            border: none; padding: 4px 12px; border-radius: 6px;
+            cursor: pointer; font-size: 0.7rem;
+        }
+        .btn-danger:hover { background: #fce4e4; }
+        
+        .data-table {
+            background: white; border-radius: 14px; border: 1.5px solid var(--border);
+            overflow-x: auto;
+        }
+        .table-header {
+            display: grid; background: var(--g8); padding: 14px 22px;
+            border-bottom: 1.5px solid var(--border); font-size: .72rem;
+            font-weight: 500; color: var(--muted); text-transform: uppercase;
+            letter-spacing: .07em;
+        }
+        .table-row {
+            display: grid; padding: 14px 22px; border-bottom: 1px solid var(--border);
+            align-items: center;
+        }
+        .table-row:last-child { border-bottom: none; }
+        .table-row:hover { background: var(--g8); }
+        
+        .estate-group {
+            background: white; border-radius: 12px; margin-bottom: 16px;
+            border: 1.5px solid var(--border); overflow: hidden;
+        }
+        .estate-header {
+            background: var(--g8); padding: 14px 20px; font-weight: 600;
+            display: flex; justify-content: space-between; align-items: center;
+            flex-wrap: wrap; gap: 10px;
+        }
+        .estate-name { font-size: 1rem; }
+        .estate-stats { font-size: 0.8rem; color: var(--muted); }
+        .unit-list { 
+            padding: 14px 20px; 
+            display: flex; 
+            flex-wrap: wrap; 
+            gap: 8px; 
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .unit-item {
+            background: var(--g8); padding: 6px 14px; border-radius: 20px;
+            font-size: .8rem; display: inline-flex; align-items: center; gap: 8px;
+            font-weight: 500;
+        }
+        .unit-item.occupied { background: var(--success-bg); color: var(--success); }
+        .unit-item.available { background: var(--g8); color: var(--muted); }
+        .unit-status-icon { font-weight: bold; font-size: 0.75rem; }
+        .estate-landlord {
+            font-size: 0.75rem; color: var(--muted); font-weight: 400;
+        }
+        .delete-unit {
+            background: none; border: none; color: var(--danger); cursor: pointer;
+            font-size: 0.7rem; margin-left: 5px; padding: 0 4px; border-radius: 4px;
+        }
+        .delete-unit:hover { background: var(--danger-bg); color: #c0392b; }
+        
+        .status-badge {
+            padding: 4px 10px; border-radius: 20px; font-size: .72rem;
+            font-weight: 500; display: inline-block;
+        }
+        .assigned-badge {
+            background: var(--g8);
+            color: var(--g2);
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.7rem;
+        }
+        
+        .modal {
+            display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5);
+            justify-content: center; align-items: center; z-index: 1000;
+        }
+        .modal-content {
+            background: white; border-radius: 16px; padding: 28px;
+            width: 90%; max-width: 500px; max-height: 80vh; overflow-y: auto;
+        }
+        .modal-header {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 20px;
+        }
+        .modal-header h2 { font-family: 'Cormorant Garamond', serif; color: var(--g1); }
+        .modal-close { background: none; border: none; font-size: 24px; cursor: pointer; }
+        .form-group { margin-bottom: 16px; }
+        .form-group label {
+            display: block; font-size: 0.75rem; font-weight: 500;
+            color: var(--g2); margin-bottom: 6px;
+        }
+        .form-group input, .form-group select {
+            width: 100%; padding: 10px; border: 1.5px solid var(--border);
+            border-radius: 8px; font-family: inherit;
+        }
+        .btn-submit {
+            width: 100%; padding: 12px; background: var(--g1);
+            color: white; border: none; border-radius: 8px;
+            font-weight: 500; cursor: pointer;
+        }
+        .help-text { font-size: .7rem; color: var(--muted); margin-top: 4px; }
+        
+        .empty-state {
+            text-align: center; padding: 60px; background: white;
+            border-radius: 12px; border: 1.5px dashed var(--border);
+        }
+        .toast {
+            position: fixed; bottom: 20px; right: 20px; background: var(--g1);
+            color: white; padding: 12px 20px; border-radius: 8px;
+            animation: slideIn 0.3s ease; z-index: 2000;
+        }
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        
+        /* Reports Panel Styles */
+        .reports-section {
+            background: white;
+            border-radius: 14px;
+            border: 1.5px solid var(--border);
+            padding: 24px;
+            margin-bottom: 24px;
+        }
+        .reports-section h3 {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 1.3rem;
+            color: var(--g1);
+            margin-bottom: 20px;
+        }
+        .reports-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+        }
+        .report-card {
+            background: var(--g8);
+            border-radius: 12px;
+            padding: 20px;
+        }
+        .report-card h4 {
+            font-size: 0.9rem;
+            color: var(--g2);
+            margin-bottom: 16px;
+        }
+        .report-stat {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid var(--border);
+        }
+        .report-stat:last-child {
+            border-bottom: none;
+        }
+        .report-stat-label {
+            font-size: 0.8rem;
+            color: var(--muted);
+        }
+        .report-stat-value {
+            font-weight: 600;
+            color: var(--g1);
+        }
+        .bar-chart {
+            margin-top: 16px;
+        }
+        .bar-item {
+            margin-bottom: 12px;
+        }
+        .bar-label {
+            font-size: 0.7rem;
+            color: var(--muted);
+            margin-bottom: 4px;
+        }
+        .bar-fill {
+            height: 24px;
+            background: linear-gradient(90deg, var(--g3), var(--g4));
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            padding-right: 8px;
+            color: white;
+            font-size: 0.7rem;
+            font-weight: 500;
+        }
+        
+        @media (max-width: 900px) {
+            .sidebar { display: none; }
+            .main { margin-left: 0; padding: 20px; }
+            .stats-row { grid-template-columns: repeat(2, 1fr); }
+            .reports-grid { grid-template-columns: 1fr; }
+            .table-header, .table-row { grid-template-columns: 1fr !important; gap: 8px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="sidebar">
+        <div class="sidebar-logo">
+            <div class="sidebar-logo-icon">
+                <svg viewBox="0 0 20 20" fill="white" width="18" height="18"><path d="M10 2C6 2 3 5 3 9c0 5 7 9 7 9s7-4 7-9c0-4-3-7-7-7z"/></svg>
+            </div>
+            <span>PropCare Admin</span>
+        </div>
+        <nav>
+            <div class="nav-item active" onclick="switchTab('overview')">📊 Overview</div>
+            <div class="nav-item" onclick="switchTab('apartments')">🏢 Apartments</div>
+            <div class="nav-item" onclick="switchTab('landlords')">👔 Landlords</div>
+            <div class="nav-item" onclick="switchTab('issues')">⚠️ Issues</div>
+            <div class="nav-item" onclick="switchTab('reports')">📈 System Reports</div>
+        </nav>
+        <div class="sidebar-user">
+            <div class="user-avatar" id="userAvatar">A</div>
+            <div>
+                <p id="userName" class="sidebar-name"></p>
+                <p id="userEmail" class="sidebar-email"></p>
+            </div>
+        </div>
+        <button class="logout" onclick="logout()">Sign Out</button>
+    </div>
+    
+    <div class="main">
+        <div class="dash-header">
+            <h1 id="greeting"></h1>
+            <p>Full system administration — Manage apartments, landlords, and issues</p>
+        </div>
+        
+        <!-- Overview Tab -->
+        <div id="overviewTab">
+            <div class="stats-row" id="statsRow"></div>
+        </div>
+        
+        <!-- Apartments Tab -->
+        <div id="apartmentsTab" style="display: none;">
+            <button class="btn-primary" onclick="openApartmentModal()">+ Add New Apartment</button>
+            <div id="apartmentsContainer"></div>
+        </div>
+        
+        <!-- Landlords Tab -->
+        <div id="landlordsTab" style="display: none;">
+            <button class="btn-primary" onclick="openLandlordModal()">+ Register New Landlord</button>
+            <div class="data-table">
+                <div class="table-header" style="grid-template-columns: 1.5fr 2fr 1fr 1.5fr 1fr;">
+                    <span>Name</span><span>Email</span><span>Phone</span><span>Status</span><span>Actions</span>
+                </div>
+                <div id="landlordsList"></div>
+            </div>
+        </div>
+        
+        <!-- Issues Tab - No Action Column -->
+        <div id="issuesTab" style="display: none;">
+            <div class="data-table">
+                <div class="table-header" style="grid-template-columns: 2fr 1fr 1fr 1fr 1.5fr;">
+                    <span>Issue / Tenant</span><span>Priority</span><span>Status</span><span>Reported</span><span>Technician Assigned</span>
+                </div>
+                <div id="allIssuesList"></div>
+            </div>
+        </div>
+        
+        <!-- Reports Tab -->
+        <div id="reportsTab" style="display: none;">
+            <div class="stats-row" id="reportStatsRow"></div>
+            
+            <div class="reports-section">
+                <h3>📊 System Analytics</h3>
+                <div class="reports-grid">
+                    <div class="report-card">
+                        <h4>User Distribution</h4>
+                        <div id="userDistribution"></div>
+                    </div>
+                    <div class="report-card">
+                        <h4>Property Overview</h4>
+                        <div id="propertyOverview"></div>
+                    </div>
+                    <div class="report-card">
+                        <h4>Issues by Priority</h4>
+                        <div id="issuePriorityChart"></div>
+                    </div>
+                    <div class="report-card">
+                        <h4>Issues by Status</h4>
+                        <div id="issueStatusChart"></div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="reports-section">
+                <h3>📈 Monthly Issue Trends</h3>
+                <div id="monthlyTrends"></div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Apartment Modal -->
+    <div id="apartmentModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header"><h2>Add New Apartment</h2><button class="modal-close" onclick="closeApartmentModal()">&times;</button></div>
+            <div class="form-group"><label>Estate Name *</label><input type="text" id="aptEstate" placeholder="e.g., Alpha Court"></div>
+            <div class="form-group"><label>Unit Number or Range *</label>
+                <input type="text" id="aptUnit" placeholder="e.g., 101 or A1-A20">
+                <div class="help-text">Single unit: "101" or Range: "A1-A20" or "1-20"</div>
+            </div>
+            <div class="form-group"><label>Assign to Landlord (Optional)</label><select id="aptLandlord"><option value="">-- None --</option></select></div>
+            <button class="btn-submit" onclick="addApartment()">Add Apartment(s)</button>
+        </div>
+    </div>
+    
+    <!-- Landlord Modal -->
+    <div id="landlordModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header"><h2>Register Landlord</h2><button class="modal-close" onclick="closeLandlordModal()">&times;</button></div>
+            <div class="form-group"><label>Full Name *</label><input type="text" id="landlordName" placeholder="John Landlord"></div>
+            <div class="form-group"><label>Email *</label><input type="email" id="landlordEmail" placeholder="landlord@example.com"></div>
+            <div class="form-group"><label>Phone</label><input type="text" id="landlordPhone" placeholder="+1234567890"></div>
+            <div class="form-group"><label>Password *</label><input type="password" id="landlordPassword" placeholder="Min 6 characters"></div>
+            <div class="form-group"><label>Estates (Optional)</label><input type="text" id="landlordEstates" placeholder="Alpha Court, Greenview Estate"></div>
+            <div class="help-text">Landlord will be INACTIVE until you assign apartments</div>
+            <button class="btn-submit" onclick="addLandlord()">Register Landlord</button>
+        </div>
+    </div>
+    
+    <script>
+        let token = localStorage.getItem('token');
+        
+        document.addEventListener('DOMContentLoaded', async () => {
+            token = localStorage.getItem('token');
+            if (!token) { window.location.href = '/admin-login.html'; return; }
+            await loadUserData();
+            loadOverview();
+            loadApartments();
+            loadLandlords();
+            loadAllIssues();
+            loadLandlordsForSelect();
+            loadSystemReports();
+        });
+        
+        async function loadUserData() {
+            try {
+                const user = JSON.parse(localStorage.getItem('user') || '{}');
+                document.getElementById('userName').innerText = user.name || 'System Admin';
+                document.getElementById('userEmail').innerText = user.email || 'admin@propcare.com';
+                document.getElementById('userAvatar').innerText = (user.name || 'A').charAt(0);
+                const hour = new Date().getHours();
+                const greet = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
+                document.getElementById('greeting').innerHTML = `${greet}, ${(user.name || 'Admin').split(' ')[0]} 👋`;
+            } catch(err) {}
+        }
+        
+        async function loadOverview() {
+            try {
+                const res = await fetch('/api/admin/stats', { headers: { 'Authorization': `Bearer ${token}` } });
+                const stats = await res.json();
+                
+                const usersByRole = stats.users_by_role || [];
+                const totalUsers = usersByRole.reduce((sum, r) => sum + parseInt(r.count), 0);
+                const tenants = usersByRole.find(r => r.role === 'tenant')?.count || 0;
+                const landlords = usersByRole.find(r => r.role === 'landlord')?.count || 0;
+                const technicians = usersByRole.find(r => r.role === 'technician')?.count || 0;
+                
+                document.getElementById('statsRow').innerHTML = `
+                    <div class="stat-card"><div class="stat-label">Total Users</div><div class="stat-value">${totalUsers}</div></div>
+                    <div class="stat-card"><div class="stat-label">Tenants</div><div class="stat-value">${tenants}</div></div>
+                    <div class="stat-card"><div class="stat-label">Landlords</div><div class="stat-value">${landlords}</div></div>
+                    <div class="stat-card"><div class="stat-label">Technicians</div><div class="stat-value">${technicians}</div></div>
+                    <div class="stat-card"><div class="stat-label">Total Issues</div><div class="stat-value">${stats.total_issues || 0}</div></div>
+                    <div class="stat-card"><div class="stat-label">Open Issues</div><div class="stat-value">${stats.issues_by_status?.find(s => s.status === 'Open')?.count || 0}</div></div>
+                    <div class="stat-card"><div class="stat-label">Resolved</div><div class="stat-value">${stats.issues_by_status?.find(s => s.status === 'Resolved')?.count || 0}</div></div>
+                    <div class="stat-card"><div class="stat-label">Emergency</div><div class="stat-value">${stats.issues_by_status?.find(s => s.status === 'Emergency')?.count || 0}</div></div>
+                    <div class="stat-card"><div class="stat-label">Apartments</div><div class="stat-value">${stats.apartments?.total || 0}</div></div>
+                    <div class="stat-card"><div class="stat-label">Occupied</div><div class="stat-value">${stats.apartments?.occupied || 0}</div></div>
+                    <div class="stat-card"><div class="stat-label">Pending Registrations</div><div class="stat-value">${stats.pending_registrations || 0}</div></div>
+                `;
+            } catch(err) { console.error(err); }
+        }
+        
+        async function loadAllIssues() {
+            try {
+                const res = await fetch('/api/issues', { headers: { 'Authorization': `Bearer ${token}` } });
+                const issues = await res.json();
+                
+                const container = document.getElementById('allIssuesList');
+                if (issues.length === 0) {
+                    container.innerHTML = '<div class="empty-state" style="grid-column:1/-1"><p>No issues reported.</p></div>';
+                    return;
+                }
+                
+                container.innerHTML = issues.map(issue => {
+                    const technicianDisplay = issue.technician_name 
+                        ? `<span class="assigned-badge">👨‍🔧 ${escapeHtml(issue.technician_name)}</span>`
+                        : '<span class="assigned-badge" style="background:#fdecea;color:#c0392b;">⚠️ Not Assigned</span>';
+                    
+                    return `
+                        <div class="table-row" style="grid-template-columns: 2fr 1fr 1fr 1fr 1.5fr;">
+                            <div>
+                                <strong>${escapeHtml(issue.title)}</strong><br>
+                                <small style="color:var(--muted);">${escapeHtml(issue.tenant_name || 'Unknown')} · ${issue.estate_name || 'N/A'} Unit ${issue.unit_number || ''}</small>
+                            </div>
+                            <div><span class="status-badge" style="background:#fdecea;color:#b71c1c;">${issue.risk_level || 'N/A'}</span></div>
+                            <div><span class="status-badge">${issue.status || 'Open'}</span></div>
+                            <div style="font-size:0.75rem;">${new Date(issue.reported_at).toLocaleDateString()}</div>
+                            <div>${technicianDisplay}</div>
+                        </div>
+                    `;
+                }).join('');
+            } catch(err) { console.error(err); }
+        }
+        
+        async function loadApartments() {
+            try {
+                const res = await fetch('/api/apartments', { headers: { 'Authorization': `Bearer ${token}` } });
+                const apartments = await res.json();
+                
+                const grouped = {};
+                apartments.forEach(apt => {
+                    if (!grouped[apt.estate_name]) grouped[apt.estate_name] = [];
+                    grouped[apt.estate_name].push(apt);
+                });
+                
+                const container = document.getElementById('apartmentsContainer');
+                if (Object.keys(grouped).length === 0) {
+                    container.innerHTML = '<div class="empty-state"><h3>No Apartments</h3><p>Click "Add New Apartment" to add properties.</p></div>';
+                    return;
+                }
+                
+                let html = '';
+                for (const [estate, units] of Object.entries(grouped)) {
+                    const occupiedCount = units.filter(u => u.is_occupied).length;
+                    const landlordNames = [...new Set(units.map(u => u.landlord_name).filter(Boolean))];
+                    const landlordLabel = landlordNames.length === 0 ? 'Unassigned'
+                        : landlordNames.length === 1 ? landlordNames[0]
+                        : landlordNames.join(', ');
+                    const sortedUnits = [...units].sort((a, b) => {
+                        const aNum = a.unit_number.match(/\d+/);
+                        const bNum = b.unit_number.match(/\d+/);
+                        const aStr = a.unit_number.match(/[A-Za-z]+/);
+                        const bStr = b.unit_number.match(/[A-Za-z]+/);
+                        if (aStr && bStr && aStr[0] !== bStr[0]) {
+                            return (aStr[0] || '').localeCompare(bStr[0] || '');
+                        }
+                        if (aNum && bNum) {
+                            return parseInt(aNum[0]) - parseInt(bNum[0]);
+                        }
+                        return a.unit_number.localeCompare(b.unit_number);
+                    });
+                    
+                    html += `
+                        <div class="estate-group">
+                            <div class="estate-header">
+                                <span class="estate-name">🏢 ${escapeHtml(estate)} <span class="estate-landlord">— ${escapeHtml(landlordLabel)}</span></span>
+                                <span class="estate-stats">${occupiedCount}/${units.length} occupied</span>
+                            </div>
+                            <div class="unit-list">
+                                ${sortedUnits.map(unit => `
+                                    <span class="unit-item ${unit.is_occupied ? 'occupied' : 'available'}">
+                                        <span style="font-weight: 500;">${escapeHtml(unit.unit_number)}</span>
+                                        <span class="unit-status-icon">${unit.is_occupied ? '✓' : '✗'}</span>
+                                        <button class="delete-unit" onclick="deleteApartment(${unit.id}, '${escapeHtml(unit.unit_number)}')" title="Delete unit">🗑</button>
+                                    </span>
+                                `).join('')}
+                            </div>
+                        </div>
+                    `;
+                }
+                container.innerHTML = html;
+            } catch(err) { console.error(err); }
+        }
+        
+        async function loadLandlords() {
+            try {
+                const res = await fetch('/api/admin/landlords', { headers: { 'Authorization': `Bearer ${token}` } });
+                const landlords = await res.json();
+                
+                const container = document.getElementById('landlordsList');
+                if (landlords.length === 0) {
+                    container.innerHTML = '<div class="empty-state" style="grid-column:1/-1"><p>No landlords registered yet.</p></div>';
+                    return;
+                }
+                
+                container.innerHTML = landlords.map(l => `
+                    <div class="table-row" style="grid-template-columns: 1.5fr 2fr 1fr 1.5fr 1fr;">
+                        <span><strong>${escapeHtml(l.full_name)}</strong></span>
+                        <span>${escapeHtml(l.email)}</span>
+                        <span>${escapeHtml(l.phone || '-')}</span>
+                        <span>
+                            ${l.status === 'active' ? 
+                                '<span class="status-badge" style="background:#e8f5e9;color:#2e7d32;">✅ Active</span>' : 
+                                '<span class="status-badge" style="background:#fdecea;color:#c0392b;">❌ Inactive</span>'
+                            }
+                            <div style="font-size:0.65rem; color:var(--muted); margin-top:2px;">${l.apartment_count || 0} apartments</div>
+                        </span>
+                        <span>
+                            <button class="btn-danger" onclick="removeLandlord(${l.id}, '${escapeHtml(l.full_name)}')">Remove</button>
+                        </span>
+                    </div>
+                `).join('');
+            } catch(err) { 
+                console.error(err);
+                showToast('Failed to load landlords');
+            }
+        }
+        
+        async function deleteApartment(apartmentId, unitNumber) {
+            if (!confirm(`Delete apartment ${unitNumber}? This cannot be undone.`)) return;
+            
+            try {
+                const res = await fetch(`/api/apartments/${apartmentId}`, {
+                    method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (res.ok) { showToast('Apartment deleted'); loadApartments(); loadOverview(); loadLandlords(); loadLandlordsForSelect(); loadSystemReports(); }
+                else { const err = await res.json(); showToast(err.error); }
+            } catch(err) { showToast('Network error'); }
+        }
+        
+        async function removeLandlord(landlordId, landlordName) {
+            if (!confirm(`Remove landlord "${landlordName}"? Their apartments will be unassigned and they will no longer be able to login.`)) return;
+            
+            try {
+                const res = await fetch(`/api/admin/landlords/${landlordId}`, {
+                    method: 'DELETE', 
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                const data = await res.json();
+                
+                if (res.ok) { 
+                    showToast(data.message || `Landlord "${landlordName}" removed successfully`); 
+                    loadLandlords(); 
+                    loadOverview(); 
+                    loadApartments();
+                    loadLandlordsForSelect();
+                    loadSystemReports();
+                } else { 
+                    showToast(data.error || 'Failed to remove landlord'); 
+                }
+            } catch(err) { 
+                console.error('Remove error:', err);
+                showToast('Network error: ' + err.message); 
+            }
+        }
+        
+        async function addApartment() {
+            const estateName = document.getElementById('aptEstate').value.trim();
+            const unitInput = document.getElementById('aptUnit').value.trim();
+            const landlordId = document.getElementById('aptLandlord').value;
+            
+            if (!estateName) { showToast('Enter estate name'); return; }
+            if (!unitInput) { showToast('Enter unit number or range'); return; }
+            
+            try {
+                const body = { estate_name: estateName, unit_number: unitInput, unit_range: unitInput };
+                if (landlordId) body.landlord_id = parseInt(landlordId);
+                
+                const res = await fetch('/api/apartments', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                    body: JSON.stringify(body)
+                });
+                
+                if (res.ok) { 
+                    const data = await res.json();
+                    showToast(data.message);
+                    closeApartmentModal(); 
+                    loadApartments(); 
+                    loadOverview();
+                    loadLandlords();
+                    loadLandlordsForSelect();
+                    loadSystemReports();
+                } else { 
+                    const err = await res.json(); 
+                    showToast(err.error); 
+                }
+            } catch(e) { showToast('Network error'); }
+        }
+        
+        async function addLandlord() {
+            const name = document.getElementById('landlordName').value.trim();
+            const email = document.getElementById('landlordEmail').value.trim();
+            const phone = document.getElementById('landlordPhone').value.trim();
+            const password = document.getElementById('landlordPassword').value;
+            const estates = document.getElementById('landlordEstates').value.trim();
+            
+            if (!name || !email || !password) { showToast('Fill required fields'); return; }
+            if (password.length < 6) { showToast('Password must be 6+ chars'); return; }
+            
+            try {
+                const res = await fetch('/api/register/landlord', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                    body: JSON.stringify({ full_name: name, email, phone, password, estates: estates ? estates.split(',').map(e => ({ name: e.trim(), unit: 'MAIN' })) : [] })
+                });
+                
+                const data = await res.json();
+                
+                if (res.ok) { 
+                    if (data.is_active) {
+                        showToast(`Landlord "${name}" created with apartments and is ACTIVE. They can login with email: ${email}`);
+                    } else {
+                        showToast(`Landlord "${name}" created but INACTIVE. Add apartments to activate.`);
+                    }
+                    closeLandlordModal(); 
+                    loadLandlords(); 
+                    loadOverview(); 
+                    loadLandlordsForSelect();
+                    loadSystemReports();
+                } else { 
+                    showToast(data.error || 'Creation failed'); 
+                }
+            } catch(e) { showToast('Network error: ' + e.message); }
+        }
+        
+        async function loadLandlordsForSelect() {
+            try {
+                const res = await fetch('/api/admin/landlords', { headers: { 'Authorization': `Bearer ${token}` } });
+                const landlords = await res.json();
+                const select = document.getElementById('aptLandlord');
+                select.innerHTML = '<option value="">-- None --</option>';
+                landlords.forEach(l => select.innerHTML += `<option value="${l.id}">${escapeHtml(l.full_name)} (${l.apartment_count} apts)</option>`);
+            } catch(e) {}
+        }
+        
+        async function loadSystemReports() {
+            try {
+                const res = await fetch('/api/admin/stats', { headers: { 'Authorization': `Bearer ${token}` } });
+                const stats = await res.json();
+                
+                const usersByRole = stats.users_by_role || [];
+                const totalApartments = stats.apartments?.total || 0;
+                const occupiedApartments = stats.apartments?.occupied || 0;
+                const occupancyRate = totalApartments > 0 ? Math.round((occupiedApartments / totalApartments) * 100) : 0;
+                const technicians = usersByRole.find(r => r.role === 'technician')?.count || 0;
+                
+                document.getElementById('reportStatsRow').innerHTML = `
+                    <div class="stat-card"><div class="stat-label">Total Apartments</div><div class="stat-value">${totalApartments}</div></div>
+                    <div class="stat-card"><div class="stat-label">Occupancy Rate</div><div class="stat-value">${occupancyRate}%</div></div>
+                    <div class="stat-card"><div class="stat-label">Total Issues</div><div class="stat-value">${stats.total_issues || 0}</div></div>
+                    <div class="stat-card"><div class="stat-label">Technicians</div><div class="stat-value">${technicians}</div></div>
+                `;
+                
+                const userDistHtml = usersByRole.map(role => `
+                    <div class="report-stat">
+                        <span class="report-stat-label">${role.role.charAt(0).toUpperCase() + role.role.slice(1)}s</span>
+                        <span class="report-stat-value">${role.count}</span>
+                    </div>
+                `).join('');
+                document.getElementById('userDistribution').innerHTML = userDistHtml || '<p>No data</p>';
+                
+                const availableApartments = totalApartments - occupiedApartments;
+                document.getElementById('propertyOverview').innerHTML = `
+                    <div class="report-stat">
+                        <span class="report-stat-label">Total Units</span>
+                        <span class="report-stat-value">${totalApartments}</span>
+                    </div>
+                    <div class="report-stat">
+                        <span class="report-stat-label">Occupied Units</span>
+                        <span class="report-stat-value">${occupiedApartments}</span>
+                    </div>
+                    <div class="report-stat">
+                        <span class="report-stat-label">Available Units</span>
+                        <span class="report-stat-value">${availableApartments}</span>
+                    </div>
+                `;
+                
+                const emergency = stats.issues_by_status?.find(s => s.status === 'Emergency')?.count || 0;
+                const urgent = stats.issues_by_status?.find(s => s.status === 'Urgent')?.count || 0;
+                const lessUrgent = stats.issues_by_status?.find(s => s.status === 'Less Urgent')?.count || 0;
+                const total = emergency + urgent + lessUrgent || 1;
+                
+                document.getElementById('issuePriorityChart').innerHTML = `
+                    <div class="bar-item">
+                        <div class="bar-label">Emergency</div>
+                        <div class="bar-fill" style="width: ${(emergency/total)*100}%; background: #e74c3c;">${emergency}</div>
+                    </div>
+                    <div class="bar-item">
+                        <div class="bar-label">Urgent</div>
+                        <div class="bar-fill" style="width: ${(urgent/total)*100}%; background: #e67e22;">${urgent}</div>
+                    </div>
+                    <div class="bar-item">
+                        <div class="bar-label">Less Urgent</div>
+                        <div class="bar-fill" style="width: ${(lessUrgent/total)*100}%; background: var(--g4);">${lessUrgent}</div>
+                    </div>
+                `;
+                
+                const open = stats.issues_by_status?.find(s => s.status === 'Open')?.count || 0;
+                const inProgress = stats.issues_by_status?.find(s => s.status === 'In Progress')?.count || 0;
+                const resolved = stats.issues_by_status?.find(s => s.status === 'Resolved')?.count || 0;
+                const totalIssues = open + inProgress + resolved || 1;
+                
+                document.getElementById('issueStatusChart').innerHTML = `
+                    <div class="bar-item">
+                        <div class="bar-label">Open</div>
+                        <div class="bar-fill" style="width: ${(open/totalIssues)*100}%; background: #2196f3;">${open}</div>
+                    </div>
+                    <div class="bar-item">
+                        <div class="bar-label">In Progress</div>
+                        <div class="bar-fill" style="width: ${(inProgress/totalIssues)*100}%; background: #ff9800;">${inProgress}</div>
+                    </div>
+                    <div class="bar-item">
+                        <div class="bar-label">Resolved</div>
+                        <div class="bar-fill" style="width: ${(resolved/totalIssues)*100}%; background: var(--success);">${resolved}</div>
+                    </div>
+                `;
+                
+                const trendsRes = await fetch('/api/admin/monthly-stats', { headers: { 'Authorization': `Bearer ${token}` } });
+                if (trendsRes.ok) {
+                    const trends = await trendsRes.json();
+                    if (trends && trends.length > 0) {
+                        const maxCount = Math.max(...trends.map(t => t.count), 1);
+                        let trendsHtml = '<div class="bar-chart">';
+                        for (const trend of trends.slice(0, 6)) {
+                            const width = (trend.count / maxCount) * 100;
+                            trendsHtml += `
+                                <div class="bar-item">
+                                    <div class="bar-label">${trend.month}</div>
+                                    <div class="bar-fill" style="width: ${width}%;">${trend.count} issues</div>
+                                </div>
+                            `;
+                        }
+                        trendsHtml += '</div>';
+                        document.getElementById('monthlyTrends').innerHTML = trendsHtml;
+                    } else {
+                        document.getElementById('monthlyTrends').innerHTML = '<p>No monthly data available</p>';
+                    }
+                } else {
+                    document.getElementById('monthlyTrends').innerHTML = '<p>Monthly trend data not available yet</p>';
+                }
+            } catch(err) { console.error(err); }
+        }
+        
+        function switchTab(tab) {
+            document.getElementById('overviewTab').style.display = 'none';
+            document.getElementById('apartmentsTab').style.display = 'none';
+            document.getElementById('landlordsTab').style.display = 'none';
+            document.getElementById('issuesTab').style.display = 'none';
+            document.getElementById('reportsTab').style.display = 'none';
+            document.getElementById(`${tab}Tab`).style.display = 'block';
+            
+            document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
+            if (event && event.target) event.target.classList.add('active');
+            
+            if (tab === 'reports') loadSystemReports();
+        }
+        
+        function openApartmentModal() { document.getElementById('apartmentModal').style.display = 'flex'; }
+        function closeApartmentModal() { document.getElementById('apartmentModal').style.display = 'none'; document.getElementById('aptEstate').value = ''; document.getElementById('aptUnit').value = ''; }
+        
+        function openLandlordModal() { document.getElementById('landlordModal').style.display = 'flex'; }
+        function closeLandlordModal() { document.getElementById('landlordModal').style.display = 'none'; document.getElementById('landlordName').value = ''; document.getElementById('landlordEmail').value = ''; document.getElementById('landlordPhone').value = ''; document.getElementById('landlordPassword').value = ''; document.getElementById('landlordEstates').value = ''; }
+        
+        function showToast(msg) { 
+            const t = document.createElement('div'); 
+            t.className = 'toast'; 
+            t.innerText = msg; 
+            document.body.appendChild(t); 
+            setTimeout(() => t.remove(), 3000); 
+        }
+        
+        function escapeHtml(str) { 
+            if (!str) return ''; 
+            return str.replace(/[&<>]/g, m => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;' }[m])); 
+        }
+        
+        function logout() { 
+            localStorage.clear(); 
+            window.location.href = '/admin-login.html'; 
+        }
+    </script>
+</body>
+</html>

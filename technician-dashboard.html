@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PropCare — Technician Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+    <script src="https://cdn.socket.io/4.6.1/socket.io.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root {
+            --g1: #0d3d2b; --g2: #155c40; --g3: #1e7a54;
+            --g4: #27a06e; --g5: #4dbb89; --g6: #a8dfc5;
+            --g7: #d4f0e4; --g8: #edfaf3;
+            --text: #0d1f18; --muted: #5a7a6b; --border: #c8e8d9;
+        }
+        body { font-family: 'DM Sans', sans-serif; background: #f0f7f3; }
+        
+        .sidebar {
+            width: 260px; height: 100vh; position: fixed; top: 0; left: 0;
+            background: var(--g1); padding: 28px 20px; display: flex;
+            flex-direction: column;
+        }
+        .sidebar-logo { display: flex; align-items: center; gap: 10px; margin-bottom: 36px; }
+        .sidebar-logo-icon {
+            width: 34px; height: 34px; background: var(--g4);
+            border-radius: 9px; display: flex; align-items: center; justify-content: center;
+        }
+        .sidebar-logo span { font-family: 'Cormorant Garamond', serif; font-size: 1.35rem; font-weight: 700; color: white; }
+        .nav-item {
+            display: flex; align-items: center; gap: 10px; padding: 10px 12px;
+            border-radius: 8px; color: var(--g6); cursor: pointer; margin-bottom: 4px;
+        }
+        .nav-item:hover, .nav-item.active { background: rgba(255,255,255,.12); color: white; }
+        .sidebar-user {
+            display: flex; align-items: center; gap: 10px; padding: 14px 0;
+            border-top: 1px solid rgba(255,255,255,.1);
+            border-bottom: 1px solid rgba(255,255,255,.1); margin: auto 0 14px 0;
+        }
+        .user-avatar {
+            width: 36px; height: 36px; border-radius: 50%; background: var(--g3);
+            display: flex; align-items: center; justify-content: center; color: white; font-weight: 500;
+        }
+        .sidebar-name { font-size: .88rem; font-weight: 500; color: white; }
+        .sidebar-email { font-size: .75rem; color: var(--g6); }
+        .workload-badge {
+            background: var(--g4); color: white; padding: 2px 8px;
+            border-radius: 12px; font-size: 0.7rem; margin-left: 8px;
+        }
+        .logout {
+            display: flex; align-items: center; justify-content: center; gap: 8px;
+            padding: 10px; background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.18);
+            border-radius: 8px; color: var(--g6); cursor: pointer;
+        }
+        .logout:hover { background: rgba(255,255,255,.16); color: white; }
+        
+        .main { margin-left: 260px; padding: 32px 40px; }
+        .dash-header { margin-bottom: 28px; }
+        .dash-header h1 { font-family: 'Cormorant Garamond', serif; font-size: 2rem; color: var(--g1); }
+        
+        .stats-row {
+            display: grid; grid-template-columns: repeat(4, 1fr);
+            gap: 14px; margin-bottom: 32px;
+        }
+        .stat-card {
+            background: white; border-radius: 12px; padding: 18px 20px;
+            border: 1.5px solid var(--border);
+        }
+        .stat-label { font-size: .72rem; font-weight: 500; color: var(--muted); text-transform: uppercase; }
+        .stat-value { font-family: 'Cormorant Garamond', serif; font-size: 2rem; font-weight: 700; color: var(--g1); }
+        .stat-card.emergency .stat-value { color: #c0392b; }
+        
+        .section-title {
+            font-size: 0.8rem; font-weight: 500; color: var(--muted);
+            text-transform: uppercase; margin: 24px 0 12px;
+        }
+        
+        .issue-card {
+            background: white; border-radius: 12px; padding: 18px 20px;
+            margin-bottom: 12px; border: 1.5px solid var(--border);
+            cursor: pointer; transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .issue-card:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        .issue-header { display: flex; justify-content: space-between; align-items: start; margin-bottom: 10px; flex-wrap: wrap; gap: 8px; }
+        .issue-title { font-size: 1rem; font-weight: 600; color: var(--text); }
+        .risk-badge {
+            padding: 4px 12px; border-radius: 20px; font-size: .7rem; font-weight: 500;
+        }
+        .risk-Emergency { background: #fdecea; color: #b71c1c; }
+        .risk-Urgent { background: #fff3e0; color: #e65100; }
+        .risk-Less\ Urgent { background: var(--g8); color: var(--g2); }
+        .status-badge {
+            padding: 4px 12px; border-radius: 20px; font-size: .7rem; font-weight: 500;
+        }
+        .status-Open { background: var(--g8); color: var(--g3); }
+        .status-In\ Progress { background: #e3f2fd; color: #1565c0; }
+        .status-Resolved { background: #e8f5e9; color: #2e7d32; }
+        
+        .maintenance-card {
+            background: white; border-radius: 12px; padding: 18px 20px;
+            margin-bottom: 12px; border: 1.5px solid var(--border);
+            border-left: 4px solid var(--g4);
+        }
+        .maintenance-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        .maintenance-title {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--text);
+        }
+        
+        .modal {
+            display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5);
+            justify-content: center; align-items: center; z-index: 1000;
+        }
+        .modal-content {
+            background: white; border-radius: 16px; padding: 28px;
+            width: 90%; max-width: 500px;
+        }
+        .modal-header {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 20px;
+        }
+        .modal-header h2 { font-family: 'Cormorant Garamond', serif; color: var(--g1); }
+        .modal-close {
+            background: none; border: none; font-size: 24px; cursor: pointer;
+        }
+        .form-group { margin-bottom: 16px; }
+        .form-group label { display: block; font-size: 0.75rem; font-weight: 500; color: var(--g2); margin-bottom: 6px; }
+        .form-group select, .form-group textarea {
+            width: 100%; padding: 10px; border: 1.5px solid var(--border);
+            border-radius: 8px; font-family: inherit;
+        }
+        .btn-submit {
+            width: 100%; padding: 12px; background: var(--g1); color: white;
+            border: none; border-radius: 8px; font-weight: 500; cursor: pointer;
+        }
+        .empty-state {
+            text-align: center; padding: 60px; background: white;
+            border-radius: 12px; border: 1.5px dashed var(--border);
+        }
+        .toast {
+            position: fixed; bottom: 20px; right: 20px; background: var(--g1);
+            color: white; padding: 12px 20px; border-radius: 8px;
+            animation: slideIn 0.3s ease; z-index: 2000;
+        }
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+    <div class="sidebar">
+        <div class="sidebar-logo">
+            <div class="sidebar-logo-icon">
+                <svg viewBox="0 0 20 20" fill="white" width="18" height="18"><path d="M10 2C6 2 3 5 3 9c0 5 7 9 7 9s7-4 7-9c0-4-3-7-7-7z"/></svg>
+            </div>
+            <span>PropCare</span>
+        </div>
+        <nav>
+            <div class="nav-item active" onclick="showTab('issues')">
+                <svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor"><rect x="2" y="3" width="16" height="14" rx="2"/><path d="M6 7h8M6 11h5"/></svg>
+                My Assignments
+            </div>
+            <div class="nav-item" onclick="showTab('maintenance')">
+                <svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+                Maintenance Tasks
+            </div>
+        </nav>
+        <div class="sidebar-user">
+            <div class="user-avatar" id="userAvatar">T</div>
+            <div>
+                <p id="userName" class="sidebar-name"></p>
+                <p id="userEmail" class="sidebar-email"></p>
+                <p id="workloadDisplay" style="font-size: 0.7rem; color: var(--g5);"></p>
+            </div>
+        </div>
+        <button class="logout" onclick="logout()">Sign Out</button>
+    </div>
+    
+    <div class="main">
+        <div class="dash-header">
+            <h1 id="greeting"></h1>
+        </div>
+        
+        <!-- Issues Tab -->
+        <div id="issuesTab">
+            <div class="stats-row">
+                <div class="stat-card"><p class="stat-label">Active Assignments</p><p class="stat-value" id="statActive">0</p></div>
+                <div class="stat-card"><p class="stat-label">In Progress</p><p class="stat-value" id="statProgress">0</p></div>
+                <div class="stat-card"><p class="stat-label">Completed</p><p class="stat-value" id="statCompleted">0</p></div>
+                <div class="stat-card emergency"><p class="stat-label">Emergency</p><p class="stat-value" id="statEmergency">0</p></div>
+            </div>
+            
+            <p class="section-title">Assigned Issues</p>
+            <div id="issuesContainer"></div>
+        </div>
+        
+        <!-- Maintenance Tab -->
+        <div id="maintenanceTab" style="display: none;">
+            <p class="section-title">Assigned Maintenance Tasks</p>
+            <div id="maintenanceContainer"></div>
+        </div>
+    </div>
+    
+    <!-- Update Issue Status Modal -->
+    <div id="statusModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Update Issue Status</h2>
+                <button class="modal-close" onclick="closeStatusModal()">&times;</button>
+            </div>
+            <div id="modalIssueInfo"></div>
+            <div class="form-group">
+                <label>New Status</label>
+                <select id="newStatus">
+                    <option value="Open">Open</option>
+                    <option value="In Progress">In Progress</option>
+                    <option value="Resolved">Resolved</option>
+                </select>
+            </div>
+            <button class="btn-submit" onclick="updateIssueStatus()">Update Status</button>
+        </div>
+    </div>
+    
+    <!-- Update Maintenance Status Modal -->
+    <div id="maintenanceStatusModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Update Maintenance Status</h2>
+                <button class="modal-close" onclick="closeMaintenanceStatusModal()">&times;</button>
+            </div>
+            <div id="modalMaintenanceInfo"></div>
+            <div class="form-group">
+                <label>New Status</label>
+                <select id="newMaintenanceStatus">
+                    <option value="scheduled">Scheduled</option>
+                    <option value="in_progress">In Progress</option>
+                    <option value="completed">Completed</option>
+                    <option value="cancelled">Cancelled</option>
+                </select>
+            </div>
+            <button class="btn-submit" onclick="updateMaintenanceStatus()">Update Status</button>
+        </div>
+    </div>
+    
+    <script>
+        let token = localStorage.getItem('token');
+        let socket = null;
+        let currentIssueId = null;
+        let currentMaintenanceId = null;
+        let currentUser = null;
+        
+        document.addEventListener('DOMContentLoaded', async () => {
+            token = localStorage.getItem('token');
+            if (!token) {
+                window.location.href = '/';
+                return;
+            }
+            await loadUserData();
+            setupWebSocket();
+            showTab('issues');
+        });
+        
+        function setupWebSocket() {
+            socket = io();
+            socket.on('connect', () => {
+                if (currentUser && currentUser.id) socket.emit('authenticate', currentUser.id);
+            });
+            socket.on('notification', (notification) => {
+                showToast(notification.title);
+                if (document.getElementById('issuesTab').style.display !== 'none') {
+                    loadAssignedIssues();
+                }
+                if (document.getElementById('maintenanceTab').style.display !== 'none') {
+                    loadMaintenanceTasks();
+                }
+            });
+        }
+        
+        function showTab(tab) {
+            document.getElementById('issuesTab').style.display = tab === 'issues' ? 'block' : 'none';
+            document.getElementById('maintenanceTab').style.display = tab === 'maintenance' ? 'block' : 'none';
+            
+            document.querySelectorAll('.nav-item').forEach((item, idx) => {
+                item.classList.remove('active');
+                if (idx === 0 && tab === 'issues') item.classList.add('active');
+                if (idx === 1 && tab === 'maintenance') item.classList.add('active');
+            });
+            
+            if (tab === 'issues') loadAssignedIssues();
+            if (tab === 'maintenance') loadMaintenanceTasks();
+        }
+        
+        async function loadUserData() {
+            try {
+                currentUser = JSON.parse(atob(token.split('.')[1]));
+                
+                document.getElementById('userName').innerText = currentUser.name || 'Technician';
+                document.getElementById('userEmail').innerText = currentUser.email || '';
+                document.getElementById('userAvatar').innerText = (currentUser.name || 'T').charAt(0);
+                
+                const hour = new Date().getHours();
+                const greet = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
+                document.getElementById('greeting').innerHTML = `${greet}, ${(currentUser.name || '').split(' ')[0]} 👋`;
+            } catch (err) {
+                console.error(err);
+            }
+        }
+        
+        async function loadAssignedIssues() {
+            try {
+                const response = await fetch('/api/issues', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const issues = await response.json();
+                
+                const active = issues.filter(i => i.status !== 'Resolved').length;
+                const inProgress = issues.filter(i => i.status === 'In Progress').length;
+                const completed = issues.filter(i => i.status === 'Resolved').length;
+                const emergency = issues.filter(i => i.risk_level === 'Emergency' && i.status !== 'Resolved').length;
+                
+                document.getElementById('statActive').innerText = active;
+                document.getElementById('statProgress').innerText = inProgress;
+                document.getElementById('statCompleted').innerText = completed;
+                document.getElementById('statEmergency').innerText = emergency;
+                document.getElementById('workloadDisplay').innerHTML = `📋 Active: ${active}`;
+                
+                const container = document.getElementById('issuesContainer');
+                if (issues.length === 0) {
+                    container.innerHTML = '<div class="empty-state"><h3>No assigned issues</h3><p>You will be notified when issues are assigned.</p></div>';
+                    return;
+                }
+                
+                container.innerHTML = issues.map(issue => `
+                    <div class="issue-card" onclick="openStatusModal(${issue.id}, '${escapeHtml(issue.title)}')">
+                        <div class="issue-header">
+                            <h3 class="issue-title">${escapeHtml(issue.title)}</h3>
+                            <div>
+                                <span class="risk-badge risk-${issue.risk_level.replace(' ', '-')}">${issue.risk_level}</span>
+                                <span class="status-badge status-${issue.status.replace(' ', '-')}">${issue.status}</span>
+                            </div>
+                        </div>
+                        <p style="color: var(--muted); font-size: 0.85rem; margin: 8px 0;">${escapeHtml(issue.description.substring(0, 150))}${issue.description.length > 150 ? '...' : ''}</p>
+                        <div style="font-size: 0.7rem; color: var(--muted);">
+                            <strong>Property:</strong> ${escapeHtml(issue.estate_name || 'N/A')} Unit ${issue.unit_number || 'N/A'} | 
+                            <strong>Tenant:</strong> ${escapeHtml(issue.tenant_name || 'N/A')} | 
+                            <strong>Reported:</strong> ${new Date(issue.reported_at).toLocaleDateString()}
+                        </div>
+                    </div>
+                `).join('');
+            } catch (err) {
+                console.error(err);
+                showToast('Failed to load issues');
+            }
+        }
+        
+        async function loadMaintenanceTasks() {
+            try {
+                const response = await fetch('/api/maintenance/schedules', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const schedules = await response.json();
+                
+                const container = document.getElementById('maintenanceContainer');
+                if (schedules.length === 0) {
+                    container.innerHTML = '<div class="empty-state"><h3>No maintenance tasks assigned</h3><p>You\'ll be notified when maintenance is scheduled.</p></div>';
+                    return;
+                }
+                
+                const now = new Date();
+                container.innerHTML = schedules.map(schedule => {
+                    const scheduleDate = new Date(schedule.scheduled_date);
+                    const isOverdue = scheduleDate < now && schedule.status !== 'completed' && schedule.status !== 'cancelled';
+                    
+                    let statusOptions = '';
+                    if (schedule.status === 'scheduled') {
+                        statusOptions = `
+                            <option value="scheduled" selected>Scheduled</option>
+                            <option value="in_progress">In Progress</option>
+                            <option value="completed">Completed</option>
+                            <option value="cancelled">Cancelled</option>
+                        `;
+                    } else if (schedule.status === 'in_progress') {
+                        statusOptions = `
+                            <option value="scheduled">Scheduled</option>
+                            <option value="in_progress" selected>In Progress</option>
+                            <option value="completed">Completed</option>
+                            <option value="cancelled">Cancelled</option>
+                        `;
+                    } else if (schedule.status === 'completed') {
+                        statusOptions = `
+                            <option value="scheduled">Scheduled</option>
+                            <option value="in_progress">In Progress</option>
+                            <option value="completed" selected>Completed</option>
+                            <option value="cancelled">Cancelled</option>
+                        `;
+                    } else {
+                        statusOptions = `
+                            <option value="scheduled">Scheduled</option>
+                            <option value="in_progress">In Progress</option>
+                            <option value="completed">Completed</option>
+                            <option value="cancelled" selected>Cancelled</option>
+                        `;
+                    }
+                    
+                    return `
+                        <div class="maintenance-card" style="${isOverdue ? 'border-left-color: #c0392b;' : ''}">
+                            <div class="maintenance-header">
+                                <h3 class="maintenance-title">🔧 ${escapeHtml(schedule.title)}</h3>
+                                <span class="status-badge status-${schedule.status?.replace(' ', '-') || 'scheduled'}">${schedule.status || 'Scheduled'}</span>
+                            </div>
+                            <div class="issue-desc">
+                                <strong>📅 Date:</strong> ${scheduleDate.toLocaleString()}
+                                ${isOverdue ? ' <span style="color:#c0392b;">(Overdue)</span>' : ''}
+                            </div>
+                            ${schedule.description ? `<div class="issue-desc"><strong>📝 Description:</strong> ${escapeHtml(schedule.description)}</div>` : ''}
+                            ${schedule.estimated_duration ? `<div class="issue-desc"><strong>⏱️ Estimated Duration:</strong> ${escapeHtml(schedule.estimated_duration)}</div>` : ''}
+                            ${schedule.notes ? `<div class="issue-desc"><strong>📌 Notes:</strong> ${escapeHtml(schedule.notes)}</div>` : ''}
+                            <div class="issue-meta" style="margin-top: 12px; font-size:0.7rem; color:var(--muted);">
+                                <strong>Scheduled by:</strong> ${escapeHtml(schedule.landlord_name || 'Landlord')}
+                            </div>
+                            <div class="issue-actions" style="margin-top: 12px;">
+                                <select id="maintenanceStatusSelect_${schedule.id}" onchange="openMaintenanceStatusModal(${schedule.id}, '${escapeHtml(schedule.title)}', this.value)" style="padding:4px 8px; border-radius:4px; width:auto;">
+                                    ${statusOptions}
+                                </select>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            } catch (err) {
+                console.error(err);
+                showToast('Failed to load maintenance tasks');
+            }
+        }
+        
+        function openMaintenanceStatusModal(scheduleId, title, currentStatus) {
+            currentMaintenanceId = scheduleId;
+            document.getElementById('modalMaintenanceInfo').innerHTML = `<p><strong>Maintenance:</strong> ${escapeHtml(title)}</p>`;
+            const select = document.getElementById('newMaintenanceStatus');
+            // Set the current status as selected
+            for (let i = 0; i < select.options.length; i++) {
+                if (select.options[i].value === currentStatus) {
+                    select.options[i].selected = true;
+                    break;
+                }
+            }
+            document.getElementById('maintenanceStatusModal').style.display = 'flex';
+        }
+        
+        function closeMaintenanceStatusModal() {
+            document.getElementById('maintenanceStatusModal').style.display = 'none';
+            currentMaintenanceId = null;
+        }
+        
+        async function updateMaintenanceStatus() {
+            const newStatus = document.getElementById('newMaintenanceStatus').value;
+            
+            try {
+                const response = await fetch(`/api/maintenance/schedules/${currentMaintenanceId}/status`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ status: newStatus })
+                });
+                
+                if (response.ok) {
+                    showToast(`Maintenance status updated to ${newStatus}`);
+                    closeMaintenanceStatusModal();
+                    loadMaintenanceTasks();
+                    // Also refresh the schedules view if open
+                    if (typeof viewSchedules === 'function') {
+                        viewSchedules();
+                    }
+                } else {
+                    const error = await response.json();
+                    showToast(error.error || 'Update failed');
+                }
+            } catch (err) {
+                showToast('Network error: ' + err.message);
+            }
+        }
+        
+        function openStatusModal(issueId, title) {
+            currentIssueId = issueId;
+            document.getElementById('modalIssueInfo').innerHTML = `<p><strong>Issue:</strong> ${escapeHtml(title)}</p>`;
+            document.getElementById('statusModal').style.display = 'flex';
+        }
+        
+        function closeStatusModal() {
+            document.getElementById('statusModal').style.display = 'none';
+            currentIssueId = null;
+        }
+        
+        async function updateIssueStatus() {
+            const newStatus = document.getElementById('newStatus').value;
+            
+            try {
+                const response = await fetch(`/api/issues/${currentIssueId}/status`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ status: newStatus })
+                });
+                
+                if (response.ok) {
+                    showToast(`Issue status updated to ${newStatus}`);
+                    closeStatusModal();
+                    loadAssignedIssues();
+                } else {
+                    const error = await response.json();
+                    showToast(error.error || 'Update failed');
+                }
+            } catch (err) {
+                showToast('Network error: ' + err.message);
+            }
+        }
+        
+        function showToast(message) {
+            const toast = document.createElement('div');
+            toast.className = 'toast';
+            toast.innerText = message;
+            document.body.appendChild(toast);
+            setTimeout(() => toast.remove(), 3000);
+        }
+        
+        function escapeHtml(str) {
+            if (!str) return '';
+            return str.replace(/[&<>]/g, function(m) {
+                if (m === '&') return '&amp;';
+                if (m === '<') return '&lt;';
+                if (m === '>') return '&gt;';
+                return m;
+            });
+        }
+        
+        function logout() {
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            window.location.href = '/';
+        }
+    </script>
+</body>
+</html>
